@@ -22052,7 +22052,7 @@ function renderTablesPanel(ign = [], refMsg = '') {
   const cb = $('cacheClear'); if (cb) cb.onclick = async () => { await cClear(); cb.textContent = 'Mémoire locale vidée'; };
 }
 // --- Cache local des fichiers déjà lus (IndexedDB) : un fichier inchangé n'est ni téléchargé ni relu -----------------
-const CACHE_VER = '10';
+const CACHE_VER = '11';
 const cdb = () => new Promise((res, rej) => { const o = indexedDB.open('ess_cache', 1); o.onupgradeneeded = () => o.result.createObjectStore('u'); o.onerror = () => rej(o.error); o.onsuccess = () => res(o.result); });
 async function cGet(k) { try { const db = await cdb(); return await new Promise((res) => { const r = db.transaction('u').objectStore('u').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); } catch { return null; } }
 async function cPut(k, v) { try { const db = await cdb(); await new Promise((res) => { const t = db.transaction('u', 'readwrite'); t.objectStore('u').put(v, k); t.oncomplete = res; t.onerror = res; t.onabort = res; }); } catch { /* cache indisponible */ } }
@@ -22130,8 +22130,21 @@ function convertSd(sd, it) {
 }
 /** Lit un fichier et le transforme en « unité » : tableau de base d'un millésime, tableaux croisés, référentiel ou rejet. */
 const PERF = { net: 0, cpu: 0, kb: 0 };
+// --- Cache partagé : toutes les unités déjà lues, en un seul fichier compressé déposé dans le dossier de données ---
+const PRELOAD = new Map(); const UNITS_SEEN = new Map(); let PRELOAD_HITS = 0;
+const setRep = (k, v) => (v instanceof Set ? { __set: [...v] } : v); const setRev = (k, v) => (v && typeof v === 'object' && v.__set ? new Set(v.__set) : v);
+async function cacheExport(currentPrefixes) {
+  const all = new Map(UNITS_SEEN); for (const [k, v] of PRELOAD) if (!all.has(k) && currentPrefixes.some((p) => k.startsWith(p))) all.set(k, v);
+  const txt = JSON.stringify({ v: CACHE_VER, built: Date.now(), units: [...all] }, setRep);
+  return { blob: await new Response(new Blob([txt]).stream().pipeThrough(new CompressionStream('gzip'))).blob(), n: all.size, mb: txt.length / 1048576 };
+}
+async function cacheImport(buf) {
+  const txt = await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text(); const j = JSON.parse(txt, setRev);
+  if (!j || j.v !== CACHE_VER) return 0; PRELOAD.clear(); for (const [k, v] of j.units) PRELOAD.set(k, v); return PRELOAD.size;
+}
 async function loadUnit(it, refSig) {
-  const key = await unitKey(it, refSig); const hit = await cGet(key); if (hit) return { ...hit, cached: true };
+  const key = await unitKey(it, refSig); const pre = PRELOAD.get(key); if (pre) { PRELOAD_HITS++; UNITS_SEEN.set(key, pre); return { ...pre, cached: true }; }
+  const hit = await cGet(key); if (hit) { UNITS_SEEN.set(key, hit); return { ...hit, cached: true }; }
   const out = await (async () => {
     if (!/\.(xlsx|xls|xlsm)$/i.test(it.name)) return { kind: 'ign', why: 'format non INSEE' };
     const tn = performance.now(); const file = it.file || await it.getFile(); const buf = await file.arrayBuffer(); PERF.net += performance.now() - tn; PERF.kb += buf.byteLength / 1024; const tp = performance.now();
@@ -22145,7 +22158,7 @@ async function loadUnit(it, refSig) {
     return convertSd(sd, it);
     })(); } finally { PERF.cpu += performance.now() - tp; }
   })();
-  await cPut(key, out); return out;
+  await cPut(key, out); UNITS_SEEN.set(key, out); return out;
 }
 
 // --- Barre de progression globale -------------------------------------------------------------------------------
@@ -22156,7 +22169,7 @@ function progSet(label, frac) {
 }
 function progEnd(label) { const el = $('prog'); if (!el) return; progSet(label || 'Terminé', 1); PROG_T = setTimeout(() => el.classList.add('hide'), 1800); }
 async function loadTables(items, ctx = {}) {
-  const msg = $('loadMsg'); const t0 = performance.now(); let done = 0; let hits = 0; PERF.net = 0; PERF.cpu = 0; PERF.kb = 0;
+  const msg = $('loadMsg'); const t0 = performance.now(); let done = 0; let hits = 0; PERF.net = 0; PERF.cpu = 0; PERF.kb = 0; PRELOAD_HITS = 0; UNITS_SEEN.clear();
   const tick = () => { msg.innerHTML = `<div class="msg">Lecture des tableaux : ${done} / ${items.length}${hits ? ` (dont ${hits} déjà en mémoire locale)` : ''}…</div>`; progSet(`Lecture des tableaux ${done} / ${items.length}${hits ? ' · ' + hits + ' en mémoire locale' : ''}`, items.length ? 0.92 * done / items.length : 0); };
   tick(); const ign = []; let refMsg = '';
   const cmds = items.filter(isCmdName); const refs = items.filter(isRefName); const data = items.filter((x) => !isRefName(x) && !isCmdName(x));
@@ -23069,7 +23082,7 @@ function init() {
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => state.rows.length && renderDashboard());
 }
 function err(e) { console.error(e); alert('Erreur : ' + (e && e.message ? e.message : e)); }
-window.ESS = { progSet, progEnd, showView, fastXlsx, sheetDataRows, renderTablesPanel, sheetData, loadTables, cClear, srcFor, dimsAvailable, state, S, filt, cles, essParDim, evolDim, buildPanorama, buildConjoncture, buildPortrait, buildChiffre, applyMapping, readFile, setRaw, parseCSV };
+window.ESS = { cacheExport, cacheImport, cacheStats: () => ({ ver: CACHE_VER, pre: PRELOAD.size, hits: PRELOAD_HITS, seen: UNITS_SEEN.size }), progSet, progEnd, showView, fastXlsx, sheetDataRows, renderTablesPanel, sheetData, loadTables, cClear, srcFor, dimsAvailable, state, S, filt, cles, essParDim, evolDim, buildPanorama, buildConjoncture, buildPortrait, buildChiffre, applyMapping, readFile, setRaw, parseCSV };
 
 /* ======================================================================
    Module ESS France Outre-mer : comparaisons inter-territoires, dynamiques
@@ -24592,12 +24605,30 @@ async function syncLoad(f) {
     $('syMsg').innerHTML = `<span class="badge ok">${esc(f.path)} lu (${fmtDate(file.lastModified)}). Vérifiez la correspondance des colonnes puis validez.</span>`;
   } catch (e) { err(e); }
 }
+/** Cache partagé (mode en ligne) : lecture avant chargement, reconstruction automatique après si des fichiers ont changé. */
+async function syncCacheRead() {
+  if (!SYNC_ONLINE || !SYNC_ONLINE.cacheGet || ESS.cacheStats().pre) return;
+  progSet('Lecture du cache partagé…', null);
+  try { const c = await SYNC_ONLINE.cacheGet(); if (c) await ESS.cacheImport(c.buf); } catch (e) { console.warn('cache partagé illisible', e); }
+}
+async function syncCacheWrite(force) {
+  if (!SYNC_ONLINE || !SYNC_ONLINE.cachePut) return; const st = ESS.cacheStats(); if (!force && st.seen === st.hits) return;
+  try {
+    progSet('Mise à jour du cache partagé (une seule fois pour tous)…', null);
+    const cur = SYNC_FILES.map((f) => [ESS.cacheStats().ver, f.path, f.mtime, f.size].join('|') + '|'); // préfixes de clés valides
+    const { blob, n, mb } = await ESS.cacheExport(cur); await SYNC_ONLINE.cachePut(blob);
+    progEnd(`Cache partagé mis à jour : ${n} fichiers, ${(blob.size / 1048576).toFixed(1).replace('.', ',')} Mo`);
+    return { n, mb };
+  } catch (e) { progEnd('Cache partagé non mis à jour'); console.warn('écriture du cache partagé impossible', e); }
+}
 async function syncLoadGroup([k, files]) {
   try {
     if (!SYNC_ONLINE && !(await syncPerm(SYNC_DIR, false))) throw new Error('autorisation refusée');
+    await syncCacheRead();
     const refs = SYNC_FILES.filter((x) => /^param/i.test(x.path) && /\.xlsx?$/i.test(x.path));
     const items = [...files, ...refs].map((f) => ({ name: f.path.split('/').pop(), path: f.path, mtime: f.mtime, size: f.size, getFile: () => f.h.getFile() }));
     await loadTables(items, { label: k });
+    syncCacheWrite().catch(() => {});
     $('syMsg').innerHTML = `<span class="badge ok">${esc(k)} : ${files.length} fichiers. Voir « Tableaux chargés » plus bas.</span>`;
   } catch (e) { err(e); }
 }
@@ -24680,24 +24711,30 @@ async function onResolve() {
   const it = await (await gfetch(`/shares/${id}/driveItem?$select=id,name,parentReference`, { headers: { Prefer: 'redeemSharingLink' } })).json();
   ON.drive = it.parentReference.driveId; ON.root = it.id;
 }
-const onChildren = async (itemPath) => (await (await gfetch(`/drives/${ON.drive}/items/${ON.root}${itemPath ? ':/' + encodeURI(itemPath) + ':' : ''}/children?$top=200`)).json()).value;
+const onChildren = async (itemPath) => { let url = `/drives/${ON.drive}/items/${ON.root}${itemPath ? ':/' + encodeURI(itemPath) + ':' : ''}/children?$top=200`; const out = []; while (url) { const j = await (await gfetch(url)).json(); out.push(...j.value); url = j['@odata.nextLink'] ? j['@odata.nextLink'].replace(/^https:\/\/graph\.microsoft\.com\/v1\.0/, '') : ''; } return out; };
 
 async function onListBases() {
   const out = [];
-  const walkIn = async (root, path, depth, label) => { for (const c of await onChildren(path)) {
-    const full = path ? path + '/' + c.name : c.name;
-    if (c.file && /\.(csv|txt|xlsx|xls|xlsm)$/i.test(c.name)) out.push({ path: label + full.slice(root.length + 1), mtime: new Date(c.lastModifiedDateTime).getTime(), size: c.size, h: { getFile: async () => { const r = await fetch(c['@microsoft.graph.downloadUrl']); if (!r.ok) throw new Error('lecture impossible (' + r.status + ')'); return new File([await r.blob()], c.name, { lastModified: new Date(c.lastModifiedDateTime).getTime() }); } } });
-    else if (c.folder && depth < 5) await walkIn(root, full, depth + 1, label); } };
+  const walkIn = async (root, path, depth, label) => { const kids = await onChildren(path); const subs = [];
+    for (const c of kids) {
+      const full = path ? path + '/' + c.name : c.name;
+      if (c.file && /\.(csv|txt|xlsx|xls|xlsm)$/i.test(c.name)) out.push({ path: label + full.slice(root.length + 1), mtime: new Date(c.lastModifiedDateTime).getTime(), size: c.size, h: { getFile: async () => { const r = await fetch(c['@microsoft.graph.downloadUrl']); if (!r.ok) throw new Error('lecture impossible (' + r.status + ')'); return new File([await r.blob()], c.name, { lastModified: new Date(c.lastModifiedDateTime).getTime() }); } } });
+      else if (c.folder && depth < 5 && !c.name.startsWith('_')) subs.push(walkIn(root, full, depth + 1, label));
+    }
+    await Promise.all(subs); };
   await walkIn(ON.cfg.dossierBases, ON.cfg.dossierBases, 0, '');
   const par = ON.cfg.dossierParametres || 'Paramètres'; try { await walkIn(par, par, 0, par + '/'); } catch { /* dossier Paramètres absent ou inaccessible */ }
   return out;
 }
-async function onPut(name, blob) {
-  const path = `${ON.cfg.dossierConsultation}/${name}`;
+async function onPut(name, blob) { return onPutPath(`${ON.cfg.dossierConsultation}/${name}`, blob); }
+async function onPutPath(path, blob) {
   if (blob.size < 3.5e6) { await gfetch(`/drives/${ON.drive}/items/${ON.root}:/${encodeURI(path)}:/content`, { method: 'PUT', body: blob }, true); return; }
   const ses = await (await gfetch(`/drives/${ON.drive}/items/${ON.root}:/${encodeURI(path)}:/createUploadSession`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ item: { '@microsoft.graph.conflictBehavior': 'replace' } }) }, true)).json();
   const CH = 3276800; for (let o = 0; o < blob.size; o += CH) { const part = blob.slice(o, Math.min(o + CH, blob.size)); const r = await fetch(ses.uploadUrl, { method: 'PUT', headers: { 'Content-Range': `bytes ${o}-${o + part.size - 1}/${blob.size}` }, body: part }); if (!r.ok && r.status !== 202) throw new Error(`envoi interrompu (${r.status})`); }
 }
+const ON_CACHE_DIR = () => `${ON.cfg.dossierBases}/_cache`; const ON_CACHE_NAME = 'cache_ess.json.gz';
+async function onCacheGet() { try { const c = (await onChildren(ON_CACHE_DIR())).find((x) => x.name === ON_CACHE_NAME); if (!c) return null; const r = await fetch(c['@microsoft.graph.downloadUrl']); if (!r.ok) return null; return { buf: await r.arrayBuffer(), mtime: new Date(c.lastModifiedDateTime).getTime() }; } catch { return null; } }
+async function onCachePut(blob) { await onPutPath(`${ON_CACHE_DIR()}/${ON_CACHE_NAME}`, blob); }
 async function onFetchText(c) { return (await fetch(c['@microsoft.graph.downloadUrl'])).text(); }
 const onStripJs = (t, v) => JSON.parse(t.replace(new RegExp('^[\\s\\S]*?window\\.' + v + '\\s*=\\s*'), '').replace(/;\s*$/, ''));
 
@@ -24709,7 +24746,7 @@ async function onStartConsult() {
   window.ESS.startConsultation();
 }
 async function onStartExpert() {
-  window.ESS.setSyncOnline({ name: ON.cfg.dossierBases + ' (en ligne)', list: onListBases, write: async (files) => { for (const [b, n] of files) await onPut(n, b); return `${ON.cfg.dossierConsultation} (SharePoint)`; } });
+  window.ESS.setSyncOnline({ name: ON.cfg.dossierBases + ' (en ligne)', list: onListBases, cacheGet: onCacheGet, cachePut: onCachePut, write: async (files) => { for (const [b, n] of files) await onPut(n, b); return `${ON.cfg.dossierConsultation} (SharePoint)`; } });
   $('navFoot').insertAdjacentHTML('afterbegin', `<div style="margin-bottom:8px">Connecté : ${esc(ON.acct.username)} · profil expert</div>`);
 }
 async function onBoot() {
