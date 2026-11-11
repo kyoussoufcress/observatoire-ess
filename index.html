@@ -24115,7 +24115,7 @@ const msLib = () => window.__MSAL_MOCK || window.msal;
 
 async function onToken(write) {
   const scopes = write ? ['Files.ReadWrite.All', 'Sites.Read.All'] : ['Files.Read.All', 'Sites.Read.All'];
-  const req = { scopes, account: ON.acct, extraQueryParameters: { domain_hint: 'organizations' } };
+  const req = { scopes, account: ON.acct, extraQueryParameters: { domain_hint: ON.cfg.domaine || 'organizations' } };
   try { return (await ON.app.acquireTokenSilent(req)).accessToken; } catch { await ON.app.acquireTokenRedirect(req); return new Promise(() => {}); }
 }
 async function gfetch(path, opt = {}, write = false) {
@@ -24185,7 +24185,7 @@ async function onBoot() {
     $('gateBtn').disabled = true; $('gateMsg').innerHTML = '<p class="muted">Connexion en cours…</p>';
     try {
       ON.acct = ON.app.getAllAccounts()[0];
-      if (!ON.acct) { await ON.app.loginRedirect({ scopes: ['Files.Read.All', 'Sites.Read.All'], prompt: 'select_account', extraQueryParameters: { domain_hint: 'organizations' } }); ON.acct = ON.app.getAllAccounts()[0]; if (!ON.acct) return; } // connexion dans la même fenêtre (évite le blocage des fenêtres surgissantes)
+      if (!ON.acct) { await ON.app.loginRedirect({ scopes: ['Files.Read.All', 'Sites.Read.All'], prompt: 'select_account', extraQueryParameters: { domain_hint: ON.cfg.domaine || 'organizations' } }); ON.acct = ON.app.getAllAccounts()[0]; if (!ON.acct) return; } // connexion dans la même fenêtre (évite le blocage des fenêtres surgissantes)
       await onResolve();
       try { await onChildren(ON.cfg.dossierBases); ON.expert = true; } catch (e) { if (e.status !== 403 && e.status !== 404) throw e; ON.expert = false; }
       if (ON.expert) await onStartExpert(); else await onStartConsult();
