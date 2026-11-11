@@ -487,7 +487,7 @@ body.consult .x-expert{display:none!important}
   </div>
   <div class="row" style="margin-top:14px"><button class="b primary" id="stSave">Enregistrer et recalculer</button><span id="stMsg"></span></div></div>
   <div class="card"><h3>Intelligence artificielle (module Expert ESS)</h3><div class="grid g3">
-    <div><label class="f">Service utilisé</label><select id="iaProv"><option value="anthropic">Claude (Anthropic) — recherche web intégrée</option><option value="openai">OpenAI</option><option value="mistral">Mistral (via la passerelle locale)</option><option value="ollama">Ollama — modèle local, aucune donnée ne sort du poste</option></select></div>
+    <div><label class="f">Service utilisé</label><select id="iaProv"><option value="anthropic">Claude (Anthropic) — recherche web intégrée</option><option value="openai">OpenAI</option><option value="gemini">Google Gemini — palier gratuit disponible</option><option value="mistral">Mistral (via la passerelle locale)</option><option value="ollama">Ollama — modèle local, aucune donnée ne sort du poste</option></select></div>
     <div><label class="f">Modèle (version)</label><select id="iaModelSel"></select><input type="text" id="iaModel" class="hide" style="margin-top:6px" placeholder="nom exact du modèle"></div>
     <div id="iaKeyWrap"><label class="f">Clé d’accès</label><input type="password" id="iaKey" autocomplete="off" placeholder="sk-…"></div>
     <div id="iaOllamaWrap" class="hide"><label class="f">Adresse d’Ollama</label><input type="text" id="iaOllama" placeholder="http://127.0.0.1:11434"></div>
@@ -23678,14 +23678,14 @@ Object.assign(window.ESS, { modelePowerBI });
    (mêmes règles que le reste de l'outil) et cite ses sources.
    ====================================================================== */
 
-const IA_DEFAULTS = { provider: 'anthropic', model: { anthropic: 'claude-opus-5-5', openai: 'gpt-5', mistral: 'mistral-large-latest', ollama: 'qwen2.5:7b' }, ollamaUrl: 'http://127.0.0.1:11434', lists: {}, saved: [], web: '1', scope: 'tout', proxy: 'http://127.0.0.1:8765', maxTok: 8000, remember: '0' };
+const IA_DEFAULTS = { provider: 'anthropic', model: { anthropic: 'claude-opus-5-5', openai: 'gpt-5', mistral: 'mistral-large-latest', ollama: 'qwen2.5:7b', gemini: 'gemini-2.5-flash' }, ollamaUrl: 'http://127.0.0.1:11434', lists: {}, saved: [], web: '1', scope: 'tout', proxy: 'http://127.0.0.1:8765', maxTok: 8000, remember: '0' };
 let IA = Object.assign({}, IA_DEFAULTS, lsGet('ess_ia', {}));
 IA.model = Object.assign({}, IA_DEFAULTS.model, IA.model || {});
 IA.lists = IA.lists || {}; IA.saved = IA.saved || []; IA.ollamaUrl = IA.ollamaUrl || 'http://127.0.0.1:11434';
 const IA_PRESETS = {
   anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-opus-4-1', 'claude-sonnet-4-5', 'claude-haiku-4-5'],
-  openai: ['gpt-5', 'gpt-5-mini', 'gpt-4.1'], mistral: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'], ollama: ['qwen2.5:7b', 'llama3.1:8b', 'mistral:7b'] };
-const IA_PROV_LABEL = { anthropic: 'Claude (Anthropic)', openai: 'OpenAI', mistral: 'Mistral', ollama: 'Ollama (local)' };
+  openai: ['gpt-5', 'gpt-5-mini', 'gpt-4.1'], mistral: ['mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest'], ollama: ['qwen2.5:7b', 'llama3.1:8b', 'mistral:7b'], gemini: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite'] };
+const IA_PROV_LABEL = { anthropic: 'Claude (Anthropic)', openai: 'OpenAI', mistral: 'Mistral', ollama: 'Ollama (local)', gemini: 'Google Gemini' };
 let IA_KEYS = IA.remember === '1' ? lsGet('ess_ia_keys', {}) : {};
 let IA_KEY = IA.remember === '1' ? (IA_KEYS[IA.provider] || lsGet('ess_ia_key', '')) : '';
 const iaNeedsKey = () => IA.provider !== 'ollama';
@@ -23986,6 +23986,34 @@ async function askOpenAICompat(userText, ui) {
   throw new Error('Nombre maximal d’étapes atteint.');
 }
 
+const GEM_BASE = 'https://generativelanguage.googleapis.com/v1beta';
+function gemSchema(x) {
+  if (Array.isArray(x)) return x.map(gemSchema);
+  if (x && typeof x === 'object') { const o = {}; for (const [k, v] of Object.entries(x)) { if (['additionalProperties', '$schema', 'default', 'examples'].includes(k)) continue; o[k] = (k === 'type' && typeof v === 'string') ? v.toLowerCase() : gemSchema(v); } return o; }
+  return x;
+}
+const toolSchemasGemini = () => [{ functionDeclarations: IA_TOOLS.map((t) => ({ name: t.name, description: t.description, parameters: gemSchema(t.schema) })) }];
+async function askGemini(userText, ui) {
+  iaHistory.push({ role: 'user', parts: [{ text: userText }] });
+  const tools = [];
+  for (let step = 0; step < 16; step++) {
+    ui.status(`Réflexion… (étape ${step + 1})`);
+    const body = { systemInstruction: { parts: [{ text: iaSystemPrompt() }] }, contents: iaHistory, tools: toolSchemasGemini(), generationConfig: { maxOutputTokens: +IA.maxTok || 8000 } };
+    const j = await postJSON(`${GEM_BASE}/models/${encodeURIComponent(IA.model.gemini)}:generateContent`, { 'x-goog-api-key': IA_KEY }, body);
+    const cand = j.candidates?.[0];
+    if (!cand?.content) throw new Error(j.promptFeedback?.blockReason ? `Réponse bloquée par Google (${j.promptFeedback.blockReason}).` : 'Réponse vide de Gemini.');
+    const parts = cand.content.parts || []; iaHistory.push({ role: 'model', parts });
+    const calls = parts.filter((p) => p.functionCall);
+    if (calls.length) {
+      const resp = [];
+      for (const p of calls) { const c = p.functionCall; tools.push(`Outil : ${c.name}(${JSON.stringify(c.args || {}).slice(0, 160)})`); ui.tools(tools); resp.push({ functionResponse: { name: c.name, response: { result: runTool(c.name, c.args) } } }); }
+      iaHistory.push({ role: 'user', parts: resp }); continue;
+    }
+    return { text: parts.filter((p) => p.text && !p.thought).map((p) => p.text).join(''), sources: [], tools };
+  }
+  throw new Error('Nombre maximal d’étapes atteint.');
+}
+
 // ----------------------------------------------------------------------
 // Rendu markdown sûr
 // ----------------------------------------------------------------------
@@ -24051,11 +24079,11 @@ async function iaSend(textArg) {
   const ui = { status: (s) => { pend.text = s; $('iaStatus').textContent = s; iaRender(); }, tools: (t) => { pend.tools = [...t]; iaRender(); } };
   const h0 = iaHistory.length;
   try {
-    const res = IA.provider === 'anthropic' ? await askAnthropic(text, ui) : await askOpenAICompat(text, ui);
+    const res = IA.provider === 'anthropic' ? await askAnthropic(text, ui) : IA.provider === 'gemini' ? await askGemini(text, ui) : await askOpenAICompat(text, ui);
     Object.assign(pend, { text: res.text || '(réponse vide)', sources: res.sources, tools: res.tools, pending: false });
   } catch (e) {
     const msg = String(e.message || e);
-    const hint = /Failed to fetch|NetworkError|Load failed/.test(msg) ? (IA.provider === 'ollama' ? ' — Ollama est-il lancé ? Démarrez-le avec la variable OLLAMA_ORIGINS=* pour autoriser cette page.' : IA.provider === 'mistral' ? ' — Mistral n’accepte pas les appels directs depuis un navigateur : lancez la passerelle locale (python python/passerelle_ia.py) et indiquez son adresse dans les paramètres.' : ' — vérifiez la connexion internet ou le pare-feu.') : /401|authentication|invalid.*key/i.test(msg) ? ' — clé API invalide.' : '';
+    const hint = /Failed to fetch|NetworkError|Load failed/.test(msg) ? (IA.provider === 'ollama' ? ' — Ollama est-il lancé ? Démarrez-le avec la variable OLLAMA_ORIGINS=* pour autoriser cette page.' : IA.provider === 'mistral' ? ' — Mistral n’accepte pas les appels directs depuis un navigateur : lancez la passerelle locale (python python/passerelle_ia.py) et indiquez son adresse dans les paramètres.' : ' — vérifiez la connexion internet ou le pare-feu.') : /429|quota|RESOURCE_EXHAUSTED/i.test(msg) ? ' — limite du palier gratuit atteinte : patientez une minute (ou jusqu’à demain pour le quota journalier), ou choisissez un modèle « flash ».' : /401|403|authentication|invalid.*key|API key/i.test(msg) ? ' — clé API invalide.' : '';
     Object.assign(pend, { text: `**Erreur** : ${msg}${hint}`, pending: false });
     if (/AbortError|aborted/.test(msg)) pend.text = 'Requête arrêtée.';
     // retire le dernier tour incomplet pour garder un historique cohérent
@@ -24102,6 +24130,7 @@ async function iaRefreshModels() {
   try {
     let ids;
     if (prov === 'anthropic') { const r = await fetch('https://api.anthropic.com/v1/models?limit=100', { headers: { 'x-api-key': IA_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } }); const j = await r.json(); if (!r.ok) throw new Error(j?.error?.message || r.status); ids = j.data.map((m) => m.id); }
+    else if (prov === 'gemini') { const r = await fetch(`${GEM_BASE}/models?pageSize=200`, { headers: { 'x-goog-api-key': IA_KEY } }); const j = await r.json(); if (!r.ok) throw new Error(j?.error?.message || r.status); ids = (j.models || []).filter((m) => (m.supportedGenerationMethods || []).includes('generateContent')).map((m) => m.name.replace(/^models\//, '')).filter((x) => /^gemini/.test(x)); }
     else if (prov === 'ollama') { const r = await fetch(`${IA.ollamaUrl.replace(/\/$/, '')}/api/tags`); const j = await r.json(); ids = (j.models || []).map((m) => m.name); }
     else { const base = prov === 'mistral' ? (IA.proxy ? `${IA.proxy.replace(/\/$/, '')}/mistral` : 'https://api.mistral.ai') : 'https://api.openai.com'; const r = await fetch(`${base}/v1/models`, { headers: { Authorization: `Bearer ${IA_KEY}` } }); const j = await r.json(); if (!r.ok) throw new Error(j?.error?.message || r.status); ids = j.data.map((m) => m.id).filter((x) => prov !== 'openai' || /^(gpt|o\d)/.test(x)); }
     ids.sort(); IA.lists[prov] = ids; lsSet('ess_ia', IA); $('iaModelSel').innerHTML = iaModelOptions(prov); msg.innerHTML = `<span class="badge ok">${ids.length} modèle(s) disponible(s)</span>`;
@@ -24112,6 +24141,7 @@ async function iaTest(prov = IA.provider, model = null) {
   const mm = IA.model[prov]; IA.model[prov] = m; IA.provider = prov; iaHistory = []; msg.textContent = 'Essai en cours…'; const t0 = performance.now();
   try {
     if (prov === 'anthropic') await postJSON('https://api.anthropic.com/v1/messages', { 'x-api-key': IA_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' }, { model: m, max_tokens: 16, messages: [{ role: 'user', content: 'Réponds : OK' }] });
+    else if (prov === 'gemini') await postJSON(`${GEM_BASE}/models/${encodeURIComponent(m)}:generateContent`, { 'x-goog-api-key': IA_KEY }, { contents: [{ role: 'user', parts: [{ text: 'Réponds : OK' }] }], generationConfig: { maxOutputTokens: 64 } });
     else { const base = prov === 'ollama' ? IA.ollamaUrl.replace(/\/$/, '') : prov === 'mistral' ? (IA.proxy ? `${IA.proxy.replace(/\/$/, '')}/mistral` : 'https://api.mistral.ai') : 'https://api.openai.com'; const body = { model: m, messages: [{ role: 'user', content: 'Réponds : OK' }] }; body[prov === 'openai' ? 'max_completion_tokens' : 'max_tokens'] = 64; await postJSON(`${base}/v1/chat/completions`, IA_KEY ? { Authorization: `Bearer ${IA_KEY}` } : {}, body); }
     msg.innerHTML = `<span class="badge ok">Connexion réussie · ${((performance.now() - t0) / 1000).toFixed(1).replace('.', ',')} s · ${esc(m)}</span>`;
   } catch (e) { msg.innerHTML = `<span class="badge" style="background:var(--danger-bg);color:var(--danger)">Échec : ${esc(String(e.message || e).slice(0, 200))}</span>`; }
