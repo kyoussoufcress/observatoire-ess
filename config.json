@@ -1,6 +1,7 @@
 {
   "clientId": "80c33bb1-bda1-4486-b497-727912cf04e7",
   "tenant": "2d60cdde-4cd7-4b27-914e-8aea77a70702",
+  "domaine": "cress-mayotte.org",
   "urlDossier": "https://cressmayotteorg.sharepoint.com/operationnel/ORESS/Observatoire%20en%20ligne",
   "dossierBases": "Data",
   "dossierConsultation": "Ressources ESS/Consultation"
