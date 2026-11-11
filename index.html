@@ -274,10 +274,10 @@ body.consult .x-expert{display:none!important}
     <div id="syMsg" style="margin-top:8px"></div><div id="syDir" style="margin-top:8px"></div></div></div>
   <div class="card">
     <div class="drop" id="drop"><strong>Glissez votre base ici ou cliquez pour la choisir</strong>Formats CSV ou Excel · le fichier reste sur votre poste</div>
-    <input type="file" id="file" accept=".csv,.txt,.xlsx,.xls,.xlsm" class="hide">
+    <input type="file" id="file" accept=".csv,.txt,.xlsx,.xls,.xlsm" class="hide" multiple>
     <div class="row" style="margin-top:12px"><div><label class="f">Millésime (si le fichier n’en comporte pas, ex. tableaux Flores)</label><input type="text" id="millesime" placeholder="ex. 2021" style="max-width:160px"></div></div>
     <div class="row" style="margin-top:12px" id="sheetRow" hidden><div><label class="f">Onglet</label><select id="sheet"></select></div></div>
-    <div id="loadMsg"></div>
+    <div id="loadMsg"></div><div id="tabList"></div>
   </div>
   <div class="card hide" id="mapCard">
     <h3>Correspondance des colonnes</h3>
@@ -21736,9 +21736,9 @@ const FIELDS = [
 ];
 const NICE_GEO = { territoire: 'Territoire', region: 'Territoire', departement: 'Département', dep: 'Département', dept: 'Département', libdep: 'Département', lib_dep: 'Département', nom_departement: 'Département', code_departement: 'Département', epci: 'EPCI', libepci: 'EPCI', lib_epci: 'EPCI', nom_epci: 'EPCI', intercommunalite: 'Intercommunalité', ze: 'Zone d’emploi', zone_emploi: 'Zone d’emploi', ze2020: 'Zone d’emploi', commune: 'Commune', libcom: 'Commune', lib_com: 'Commune', nom_commune: 'Commune', codgeo: 'Commune', depcom: 'Commune', code_commune: 'Commune' };
 const geoName = (k, d) => (state.map[k] ? NICE_GEO[normKey(state.map[k])] || ucfirst(state.map[k]) : d);
-const GEO_LABEL = () => ({ geo1: geoName('geo1', 'Territoire 1'), geo2: geoName('geo2', 'Territoire 2'), geo3: geoName('geo3', 'Territoire 3') });
+const GEO_LABEL = () => ({ geo1: geoName('geo1', 'Territoire 1'), geo2: state.map.geo2 || !state.tables.some((t) => t.dims.includes('geo2')) ? geoName('geo2', 'Territoire 2') : 'Département', geo3: state.map.geo3 || !state.tables.some((t) => t.dims.includes('geo3')) ? geoName('geo3', 'Territoire 3') : 'Intercommunalité (EPCI)' });
 
-const state = { raw: null, cols: [], map: {}, rows: [], times: [], timeType: 'annee', aggregated: false, fileName: '', wb: null, lastTables: [] };
+const state = { tables: [], raw: null, cols: [], map: {}, rows: [], times: [], timeType: 'annee', aggregated: false, fileName: '', wb: null, lastTables: [] };
 
 function autoMap(cols) {
   const m = {}; const used = new Set(); const nk = cols.map(normKey);
@@ -21771,7 +21771,7 @@ function parseCSV(text) {
   return { cols: head, data: rows.map((r) => Object.fromEntries(head.map((h, i) => [h, r[i] ?? '']))) };
 }
 async function readFile(file) {
-  state.fileName = file.name; state.wb = null;
+  state.fileName = file.name; state.wb = null; state.tables = []; renderTablesPanel();
   const msg = $('loadMsg'); msg.innerHTML = '<div class="msg">Lecture en cours…</div>';
   const buf = await file.arrayBuffer();
   if (/\.(csv|txt)$/i.test(file.name)) {
@@ -21787,17 +21787,18 @@ async function readFile(file) {
     sel.value = best; loadSheet(best);
   }
 }
-function loadSheet(name) {
-  const ws = state.wb.Sheets[name];
+function sheetData(ws) {
   const top = XLSX.utils.sheet_to_json(ws, { header: 1, range: 0, defval: '', blankrows: true }).slice(0, 40);
   const hi = top.findIndex((r) => r.some((c) => /^etablissements$/i.test(String(c).trim())) && r.filter((c) => c !== '').length >= 5);
-  let data;
-  if (hi > 0) { // bandeau de métadonnées INSEE au-dessus du tableau
-    const m = top.slice(0, hi).map((r) => String(r[0] || '')).join(' ').match(/mill[ée]sime\s*((?:19|20)\d\d)/i);
-    if (m && $('millesime') && !$('millesime').value.trim()) $('millesime').value = m[1];
-    data = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true, range: hi });
-  } else data = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
-  setRaw(data.length ? Object.keys(data[0]) : [], data);
+  let year = '';
+  if (hi > 0) { const m = top.slice(0, hi).map((r) => String(r[0] || '')).join(' ').match(/mill[ée]sime\s*((?:19|20)\d\d)/i); if (m) year = m[1]; }
+  const data = XLSX.utils.sheet_to_json(ws, hi > 0 ? { defval: '', raw: true, range: hi } : { defval: '', raw: true });
+  return { cols: data.length ? Object.keys(data[0]) : [], data, year };
+}
+function loadSheet(name) {
+  const sd = sheetData(state.wb.Sheets[name]);
+  if (sd.year && $('millesime') && !$('millesime').value.trim()) $('millesime').value = sd.year;
+  setRaw(sd.cols, sd.data);
 }
 
 // ----------------------------------------------------------------------
@@ -21881,6 +21882,112 @@ function floresConvert(cols, data) {
   for (const o of out) { delete o.__g; delete o.__cls; delete o.__unk; delete o.__raw; for (const m of Object.values(OUT)) if (m in o) o[m] = Math.round(o[m]); }
   if (!out.length) return null;
   return { cols: ['territoire', 'famille', 'secteur', 'annee', 'etablissements', 'entreprises', 'effectifs', ...(mes.some((m) => m[0] === 'etp') ? ['etp'] : []), ...(mes.some((m) => m[0] === 'ms') ? ['masse_salariale'] : []), 'secret_insee'], data: out, year, nS: out.filter((o) => o.secret_insee).length, nTot: out.length };
+}
+// ----------------------------------------------------------------------
+// Plusieurs tableaux INSEE d'un même millésime : un tableau de base (famille × secteur) + des tableaux croisés complémentaires
+// ----------------------------------------------------------------------
+const OM_SET = new Set(['Guadeloupe', 'Martinique', 'Guyane', 'La Réunion', 'Mayotte', 'Saint-Martin', 'Saint-Barthélemy', 'Saint-Pierre-et-Miquelon']);
+const ZONES = ['France entière', 'Outre-mer', 'France hexagonale'];
+const zoneMatch = (r, z) => (z === 'France entière' ? true : z === 'Outre-mer' ? OM_SET.has(r.geo1) : z === 'France hexagonale' ? !!r.geo1 && !OM_SET.has(r.geo1) : false);
+const DEP_REG = (() => { const R = { 'Auvergne-Rhône-Alpes': '01 03 07 15 26 38 42 43 63 69 73 74', 'Bourgogne-Franche-Comté': '21 25 39 58 70 71 89 90', Bretagne: '22 29 35 56', 'Centre-Val de Loire': '18 28 36 37 41 45', Corse: '2A 2B 20', 'Grand Est': '08 10 51 52 54 55 57 67 68 88', 'Hauts-de-France': '02 59 60 62 80', 'Île-de-France': '75 77 78 91 92 93 94 95', Normandie: '14 27 50 61 76', 'Nouvelle-Aquitaine': '16 17 19 23 24 33 40 47 64 79 86 87', Occitanie: '09 11 12 30 31 32 34 46 48 65 66 81 82', 'Pays de la Loire': '44 49 53 72 85', "Provence-Alpes-Côte d'Azur": '04 05 06 13 83 84', Guadeloupe: '971', Martinique: '972', Guyane: '973', 'La Réunion': '974', Mayotte: '976' }; const m = {}; for (const [r, l] of Object.entries(R)) for (const d of l.split(' ')) m[d] = r; return m; })();
+const epciGeo1 = (code, name) => { const c = String(code); const n = String(name || '');
+  if (/^2497[1-9]/.test(c) || /^2400?97/.test(c)) { const m = { 1: 'Guadeloupe', 2: 'Martinique', 3: 'Guyane', 4: 'La Réunion', 6: 'Mayotte' }[c[4]]; if (m) return m; }
+  if (/Savanes|Ouest Guyanais|Est Guyanais|Centre Littoral|Maroni|Guyane/i.test(n)) return 'Guyane';
+  if (/Marie-Galante|Cap Excellence|Nord Basse-Terre|Riviera du Levant|Grand Sud Cara[ïi]be|Nord Grande-Terre|Guadeloupe/i.test(n)) return 'Guadeloupe';
+  if (/Martinique|Espace Sud/i.test(n)) return 'Martinique';
+  if (/R[ée]union|CINOR|CIVIS|CASUD|CIREST|Territoire de la C[ôo]te Ouest/i.test(n)) return 'La Réunion';
+  if (/Mayotte|Demb[ée]ni|Petite-Terre|Mamoudzou/i.test(n)) return 'Mayotte';
+  return ''; };
+const EX_LAB = { taille: 'Taille d’établissement', csp: 'Catégorie socioprofessionnelle', sexe: 'Sexe', typemp: 'Type d’emploi' };
+const NJ_FAM = { '01': 'Coopératives', '02': 'Mutuelles', '03': 'Associations', '04': 'Fondations' };
+const secFmt = (t) => (t ? ucfirst(t.toLowerCase().replace(/\s*\(.*?\)\s*$/, '')) + (/\(.*\)\s*$/.test(t) ? ' ' + t.match(/\(.*\)\s*$/)[0].trim() : '') : 'Ensemble');
+function inseeTable(cols, data, ctx = {}, level = 'reg') {
+  const lc = Object.fromEntries(cols.map((c) => [String(c).toLowerCase(), c])); const has = (k) => lc[k] !== undefined;
+  if (!(has('etablissements') && has('secret_etablissements'))) return null;
+  if (level === 'reg' && !has('reg')) return { skip: 'pas de niveau régional' };
+  if (level === 'dep' && !has('dep')) return { skip: 'pas de niveau départemental' };
+  if (level === 'epci' && !has('epci')) return { skip: 'pas de niveau intercommunal' };
+  if (!has('reg') && !has('dep') && !has('epci')) return { skip: 'niveau géographique non reconnu (format à intégrer)' };
+  const typ = ['typologie_a', 'typologie_b', 'typologie_c', 'epci_1', 'epci_2'].find(has); const geoDep = has('dep');
+  const role = new Set(['reg', 'dep', 'epci', 'ess', 'ess_pub_pri', 'nomjur1', typ, typ && typ + '_d'].filter(Boolean));
+  const split = Object.keys(lc).filter((k) => has('lib_' + k) && !role.has(k) && !k.startsWith('lib_') && !k.endsWith('_d'));
+  const nm = (k) => (/^teff/.test(k) ? 'taille' : k); const sd = split.map(nm);
+  const g = (r, k) => String(r[lc[k]] ?? '').trim(); const isTot = (v) => /^total$/i.test(v);
+  const IND = [['etablissements', 'w'], ['eff3112', 'eff'], ['effeqtp', 'etp'], ['rembruteme', 'ms']].filter(([k]) => has(k));
+  const okey = (r) => [has('reg') ? g(r, 'reg') : '', geoDep ? g(r, 'dep') : '', has('epci') ? g(r, 'epci') : '', typ ? g(r, typ) : '', g(r, 'ess'), g(r, 'ess_pub_pri'), g(r, 'nomjur1'), ...split.map((k) => g(r, k))].join('|');
+  const hasD = !!typ && has(typ + '_d'); const hasCode = new Set(); if (hasD) for (const r of data) if (g(r, typ) === g(r, typ + '_d')) hasCode.add(okey(r));
+  const cand = []; let aut = false;
+  for (const r of data) {
+    let reg; let dep = ''; let epci = '';
+    if (level === 'epci') { epci = g(r, 'epci'); if (!epci || isTot(epci)) continue; reg = epciGeo1(epci, r[lc.lib_epci]) || '-'; }
+    else if (level === 'dep') { dep = g(r, 'dep'); if (!dep || isTot(dep) || /^total$/i.test(dep)) continue; reg = has('reg') ? g(r, 'reg') : (DEP_REG[dep] || ''); if (!reg || isTot(reg)) continue; }
+    else { if (geoDep && !isTot(g(r, 'dep'))) continue; reg = g(r, 'reg'); if (!reg || isTot(reg)) continue; }
+    let totSec = false; if (typ) { const t = g(r, typ); const d = g(r, typ + '_d'); if (isTot(t)) totSec = true; else if (hasD && d !== t && !(isTot(d) && !hasCode.has(okey(r)))) continue; }
+    let statut = 'ESS'; let famille = null; const ep = g(r, 'ess_pub_pri'); const es = g(r, 'ess'); const nj = g(r, 'nomjur1');
+    if (has('ess_pub_pri')) { if (isTot(ep)) continue; statut = ep === 'ESS' ? 'ESS' : ep === 'PUB' ? 'Public' : 'Privé hors ESS'; }
+    let totFam = false;
+    if (has('nomjur1')) { const c = nj.slice(0, 2); if (NJ_FAM[c]) { famille = NJ_FAM[c]; statut = 'ESS'; } else if (c === '06') statut = 'Public'; else if (c === '07') statut = 'Privé hors ESS'; else if (isTot(nj) && /^(ess|aut)$/i.test(es)) { totFam = true; famille = 'Total'; statut = /^ess$/i.test(es) ? 'ESS' : 'Privé hors ESS'; } else continue; }
+    else if (has('ess') && !has('ess_pub_pri')) { if (isTot(es)) continue; statut = es === 'ESS' ? 'ESS' : 'Privé hors ESS'; if (statut !== 'ESS') aut = true; }
+    const o = { t: ctx.year || '', famille, statut, secteur: typ && !totSec ? secFmt(String(r[lc['lib_' + typ]] || g(r, typ)).trim()) : 'Ensemble', _cls: statut === 'ESS' ? 'ESS' : 'HORS', geo1: level === 'epci' ? (reg === '-' ? '' : reg) : has('reg') ? terrNameOf(String(r[lc.lib_reg] || reg).trim()) : reg, geo2: dep ? terrNameOf(String(r[lc.lib_dep] || dep).trim()) : '', geo3: epci ? String(r[lc.lib_epci] || epci).trim() : '', cj: '', ape: '', id: '', nom: '', creation: null, ferme: false, flag: false, fem: 0, cdi: 0, taille: null, w: 0, eff: 0, etp: 0, ms: 0, _s: {}, _tot: { secteur: totSec, famille: totFam } };
+    split.forEach((k, i) => { const tot = isTot(g(r, k)); o[sd[i]] = tot ? 'Total' : String(r[lc['lib_' + k]] || g(r, k)).trim(); o._tot[sd[i]] = tot; });
+    for (const [k, f] of IND) { const sc = lc['secret_' + k]; const sec = sc !== undefined && /^s$/i.test(String(r[sc]).trim()); o[f] = sec ? 0 : num(r[lc[k]]); if (sec) o._s[f] = true; }
+    o.ms *= 1e6; cand.push(o);
+  }
+  for (const X of [...(has('nomjur1') ? ['famille'] : []), ...(typ ? ['secteur'] : []), ...sd]) { // reconstitution des cases secrètes à partir des totaux publiés
+    const others = [...(X === 'famille' ? [] : ['famille', 'statut']), ...(X === 'secteur' ? [] : ['secteur']), ...sd.filter((d) => d !== X)];
+    const groups = new Map(); for (const o of cand) { const k = JSON.stringify([o.geo1, o.geo2, o.geo3, o._cls, ...others.map((d) => o[d])]); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(o); }
+    for (const list of groups.values()) { const tot = list.find((o) => o._tot[X]); const lv = list.filter((o) => !o._tot[X]); if (!tot || !lv.length) continue;
+      for (const f of ['w', 'eff', 'etp', 'ms']) { if (tot._s[f]) continue; const sl = lv.filter((o) => o._s[f]); if (!sl.length) continue; const known = lv.reduce((a, o) => a + (o._s[f] ? 0 : o[f]), 0); for (const o of sl) o[f] = Math.round(Math.max(0, tot[f] - known) / sl.length); } }
+  }
+  const rows = cand.filter((o) => !Object.values(o._tot).some(Boolean)); for (const o of rows) { o.sec = Object.keys(o._s).length > 0; o.mx = o.eff; delete o._s; delete o._tot; delete o._cls; }
+  if (!rows.length) return { skip: 'aucune ligne exploitable' };
+  const dims = [...(level === 'epci' ? ['geo3'] : ['geo1']), ...(level === 'dep' ? ['geo2'] : []), 'temps', ...(typ ? ['secteur'] : []), ...(has('nomjur1') ? ['famille'] : []), ...sd];
+  const stat = new Set(rows.map((r) => r.statut)); if (stat.size > 1) dims.push('statut');
+  for (const d of sd) if (!EX_LAB[d]) EX_LAB[d] = ucfirst(d.replace(/_/g, ' '));
+  return { name: (ctx.name || '') + (level === 'dep' ? ' (départements)' : level === 'epci' ? ' (intercommunalités)' : ''), level, autTotal: aut && !has('nomjur1') && !has('ess_pub_pri'), dims, rows, nonESS: [...stat].some((x) => x !== 'ESS'), secteurs: new Set(rows.map((r) => r.secteur)), typ: typ ? typ.slice(-1).toUpperCase() : '', year: ctx.year || '' };
+}
+const baseHas = (d) => (d === 'taille' ? !state.aggregated || !!state.map.taille : d === 'zone' ? !!state.map.geo1 : d === 'geo1' || d === 'geo2' || d === 'geo3' ? !!state.map[d] : ['famille', 'secteur', 'statut', 'temps', '', undefined, null].includes(d));
+/** Choisit le tableau complémentaire qui porte les dimensions demandées (null = tableau de base). */
+function srcFor(dims, { needAll = false } = {}) {
+  const need = dims.filter((d) => d && !baseHas(d)); if (!need.length) return null;
+  const bs = new Set(state.rows.map((r) => r.secteur));
+  const c = state.tables.filter((t) => need.every((d) => t.dims.includes(d)) && (!needAll || t.nonESS));
+  c.sort((a, b) => ([...b.secteurs].filter((x) => bs.has(x)).length / b.secteurs.size) - ([...a.secteurs].filter((x) => bs.has(x)).length / a.secteurs.size) || (b.nonESS - a.nonESS));
+  return c[0] || null;
+}
+function renderTablesPanel(ign = []) {
+  const el = $('tabList'); if (!el) return;
+  if (!state.tables.length && !ign.length && !state.rows.length) { el.innerHTML = ''; return; }
+  const L = (x) => (x ? '' : '');
+  const rows = [state.rows.length ? `<tr><td style="text-align:left"><strong>${esc(state.fileName)}</strong></td><td style="text-align:left">Tableau de base : territoire × famille × secteur</td><td>${fInt(state.rows.length)}</td></tr>` : '',
+    ...state.tables.map((t) => `<tr><td style="text-align:left">${esc(t.name)}</td><td style="text-align:left">${esc(t.dims.filter((d) => d !== 'temps').map((d) => ({ geo1: 'territoire', secteur: 'secteur (typologie ' + t.typ + ')', famille: 'famille', statut: 'statut' }[d] || (EX_LAB[d] || d).toLowerCase())).join(' × '))}${t.nonESS ? '' : ' (ESS seul)'}</td><td>${fInt(t.rows.length)}</td></tr>`),
+    ...ign.map(([n, why]) => `<tr><td style="text-align:left;color:var(--muted)">${esc(n)}</td><td style="text-align:left;color:var(--muted)" colspan="2">non intégré : ${esc(why)}</td></tr>`)].join('');
+  el.innerHTML = `<div class="card" style="margin-top:12px"><h3>Tableaux chargés (${(state.rows.length ? 1 : 0) + state.tables.length})</h3><p class="muted" style="margin-top:0">Chaque tableau apporte un croisement. Pour chaque analyse, l’outil utilise le tableau qui porte la ventilation demandée, sans jamais additionner deux tableaux entre eux.</p><div class="tw"><table class="t"><thead><tr><th>Fichier</th><th>Croisement</th><th>Lignes</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+async function loadTables(items, ctx = {}) {
+  const msg = $('loadMsg'); msg.innerHTML = `<div class="msg">Lecture de ${items.length} tableaux…</div>`;
+  const bases = []; const extra = []; const ign = [];
+  for (const it of items) {
+    try {
+      if (!/\.(xlsx|xls|xlsm)$/i.test(it.name)) { ign.push([it.name, 'format non INSEE']); continue; }
+      const wb = XLSX.read(await it.file.arrayBuffer(), { type: 'array' }); let sd = null;
+      for (const n of wb.SheetNames) { const x = sheetData(wb.Sheets[n]); if (x.cols.some((c) => /^etablissements$/i.test(String(c)))) { sd = x; break; } }
+      if (!sd) { ign.push([it.name, 'tableau INSEE non reconnu']); continue; }
+      const year = ctx.year || sd.year || ($('millesime')?.value || '').trim();
+      const ins = inseeNormalize(sd.cols, sd.data);
+      if (ins && !ins.unsupported && ins.geo === 'régions') { bases.push({ it, sd, ins, year }); continue; }
+      let n = 0; const why = [];
+      for (const lv of ['reg', 'dep', 'epci']) { const t = inseeTable(sd.cols, sd.data, { year, name: it.path || it.name }, lv); if (t && !t.skip) { extra.push(t); n++; } else if (t) why.push(t.skip); }
+      if (!n) ign.push([it.name, why.filter((w) => !/^pas de niveau/.test(w))[0] || why[0] || 'non reconnu']);
+    } catch (e) { ign.push([it.name, 'fichier illisible (' + String(e.message || e).slice(0, 60) + ')']); }
+  }
+  const b = bases.find((x) => x.ins.geo === 'régions') || bases[0];
+  if (!b) { msg.innerHTML = '<div class="msg warn">Aucun tableau « territoire × famille juridique × typologie sectorielle » parmi les fichiers : il sert de base à l’analyse (par exemple le tableau FLORES_6 pour les régions).</div>'; state.tables = []; renderTablesPanel(ign); return; }
+  for (const o of bases) if (o !== b) { ign.push([o.it.name, 'doublon du tableau de base']); }
+  if (b.year && $('millesime')) $('millesime').value = b.year;
+  state.fileName = b.it.path || b.it.name; state.wb = null; $('sheetRow').hidden = true;
+  state.tables = extra; setRaw(b.sd.cols, b.sd.data); applyMapping(); renderTablesPanel(ign);
+  msg.innerHTML += `<div class="msg ok">${items.length} fichiers lus : 1 tableau de base et ${extra.length} tableau(x) croisé(s) complémentaire(s)${ign.length ? `, ${ign.length} non intégré(s) (voir ci-dessous)` : ''}.</div>`;
 }
 function setRaw(cols, data) {
   const ins = (() => { try { return inseeNormalize(cols, data); } catch (e) { console.error(e); return null; } })();
@@ -22059,23 +22166,30 @@ function isSecret(a) {
   return false;
 }
 const sv = (a, v) => (isSecret(a) ? 's' : v);
-function filt(f = {}) {
-  return state.rows.filter((r) => (!f.t || r.t === f.t) && (!f.geoLevel || !f.geoValue || r[f.geoLevel] === f.geoValue)
-    && (!f.famille || r.famille === f.famille) && (!f.secteur || r.secteur === f.secteur));
+function filt(f = {}, tab = null) {
+  const rows = tab ? tab.rows : state.rows; const ign = [];
+  const okFam = !f.famille || !tab || tab.dims.includes('famille'); if (!okFam) ign.push('famille');
+  const okSec = !f.secteur || !tab || tab.secteurs.has(f.secteur); if (f.secteur && !okSec) ign.push('secteur');
+  const okGeo = !f.geoLevel || !f.geoValue || f.geoLevel === 'zone' || !tab || rows.some((r) => r[f.geoLevel]); if (!okGeo) ign.push('territoire');
+  filt.ign = ign;
+  return rows.filter((r) => (!f.t || !r.t || r.t === f.t) && (!okGeo || !f.geoLevel || !f.geoValue || (f.geoLevel === 'zone' ? zoneMatch(r, f.geoValue) : r[f.geoLevel] === f.geoValue))
+    && (!f.famille || !okFam || r.famille === f.famille) && (!f.secteur || !okSec || r.secteur === f.secteur));
 }
 function cles(rows) {
   const ess = agg(rows.filter((r) => r.statut === 'ESS')); const priv = agg(rows.filter((r) => r.statut === 'Privé hors ESS')); const pub = agg(rows.filter((r) => r.statut === 'Public'));
   return { ess, priv, pub, poidsTot: pct(ess.eff, ess.eff + priv.eff + pub.eff), poidsPriv: pct(ess.eff, ess.eff + priv.eff), poidsEtabPriv: pct(ess.etab, ess.etab + priv.etab), hasPub: pub.n > 0 };
 }
 const dimVal = (r, d) => (d === 'famille' ? (r.famille || r.statut) : d === 'temps' ? r.t : r[d] ?? '');
-const DIM_LABELS = () => ({ famille: 'Famille', secteur: 'Secteur d’activité', geo1: GEO_LABEL().geo1, geo2: GEO_LABEL().geo2, geo3: GEO_LABEL().geo3, taille: 'Taille d’établissement', statut: 'Statut', temps: 'Période' });
+const DIM_LABELS = () => ({ famille: 'Famille', secteur: 'Secteur d’activité', geo1: GEO_LABEL().geo1, geo2: GEO_LABEL().geo2, geo3: GEO_LABEL().geo3, statut: 'Statut', temps: 'Période', ...EX_LAB, taille: 'Taille d’établissement' });
 function dimsAvailable() {
   const d = ['famille', 'secteur']; if (state.map.geo1) d.push('geo1'); if (state.map.geo2) d.push('geo2'); if (state.map.geo3) d.push('geo3');
-  if (!state.aggregated || state.map.taille) d.push('taille'); d.push('statut'); if (state.times.length > 1) d.push('temps'); return d;
+  if (!state.aggregated || state.map.taille) d.push('taille'); d.push('statut'); if (state.times.length > 1) d.push('temps');
+  for (const t of state.tables) for (const x of t.dims) if (!['geo1', 'temps', 'secteur', 'famille', 'statut'].includes(x) && !d.includes(x)) d.push(x);
+  return d;
 }
 function orderKeys(dim, keys) {
   if (dim === 'famille') { const o = [...REF.familles, FAM_SC, 'Autres (périmètre élargi)', 'ESS (toutes familles)', 'Privé hors ESS', 'Public']; return keys.sort((a, b) => o.indexOf(a) - o.indexOf(b)); }
-  if (dim === 'taille') { const o = REF.tailles.map((t) => t.libelle); return keys.sort((a, b) => o.indexOf(a) - o.indexOf(b)); }
+  if (dim === 'taille') { const o = REF.tailles.map((t) => t.libelle); if (keys.every((k) => o.includes(k))) return keys.sort((a, b) => o.indexOf(a) - o.indexOf(b)); const n = (x) => (/^moins/i.test(x) ? 0 : (/\d+/.exec(x) || [1e9])[0]); return keys.sort((a, b) => n(a) - n(b)); }
   if (dim === 'temps') return keys.sort();
   if (dim === 'statut') { const o = ['ESS', 'Privé hors ESS', 'Public']; return keys.sort((a, b) => o.indexOf(a) - o.indexOf(b)); }
   return keys;
@@ -22108,7 +22222,7 @@ const sourceLine = (t) => `Source : ${srcName()}${t ? ' ' + t : ''} — traiteme
 const verbe = (e, pl = false) => { const n = pl ? 'nt' : ''; return e == null ? 'évolue' + n : e >= 0.5 ? `progresse${n} de ${fPct(e)}` : e <= -0.5 ? `recule${n} de ${fPct(Math.abs(e))}` : `se stabilise${n} (${fSgn(e)}${NB}%)`; };
 const regionIn = () => S.regionIn || ('en ' + S.region);
 const OM_PREP = { Guadeloupe: 'en Guadeloupe', Martinique: 'en Martinique', Guyane: 'en Guyane', 'La Réunion': 'à La Réunion', Mayotte: 'à Mayotte', 'Saint-Martin': 'à Saint-Martin', 'Saint-Barthélemy': 'à Saint-Barthélemy', 'Saint-Pierre-et-Miquelon': 'à Saint-Pierre-et-Miquelon', 'Nouvelle-Calédonie': 'en Nouvelle-Calédonie', 'Polynésie française': 'en Polynésie française', 'Wallis-et-Futuna': 'à Wallis-et-Futuna' };
-const dansTerr = (terr) => (terr === S.region ? regionIn() : OM_PREP[terr] || `sur le territoire « ${terr} »`);
+const dansTerr = (terr) => (terr === S.region ? regionIn() : { 'France entière': 'en France', 'Outre-mer': 'dans les Outre-mer', 'France hexagonale': 'en France hexagonale' }[terr] || OM_PREP[terr] || `sur le territoire « ${terr} »`);
 const terrSourceNotes = () => (S.sourcesTerr || '').split('\n').map((l) => l.split(';')).filter((p) => p.length > 1 && state.rows.some((r) => r.geo1 === p[0].trim())).map((p) => `${p[0].trim()} : ${p.slice(1).join(';').trim()}.`);
 const verbeTitre = (e) => (e == null ? 'évolue' : e >= 0.5 ? 'progresse' : e <= -0.5 ? 'recule' : 'se stabilise');
 
@@ -22170,8 +22284,18 @@ function chartToPng(cfg, w = 900, h = 440) {
 function selectHTML(id, label, options, value) {
   return `<div><label class="f" for="${id}">${esc(label)}</label><select id="${id}">${options.map((o) => { const [v, l] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}"${String(v) === String(value) ? ' selected' : ''}>${esc(l)}</option>`; }).join('')}</select></div>`;
 }
-function geoLevelOptions() { const o = [['', 'Ensemble (' + S.region + ')']]; for (const g of ['geo1', 'geo2', 'geo3']) if (state.map[g]) o.push([g, GEO_LABEL()[g]]); return o; }
-function geoValues(level) { return level ? [...new Set(state.rows.map((r) => r[level]))].sort((a, b) => a.localeCompare(b, 'fr')) : []; }
+function geoLevelOptions() {
+  const o = [['', 'Ensemble (' + S.region + ')']];
+  if (state.map.geo1 && state.rows.some((r) => OM_SET.has(r.geo1)) ) o.push(['zone', 'France · Outre-mer · Hexagone']);
+  for (const g of ['geo1', 'geo2', 'geo3']) if (state.map[g] || state.tables.some((t) => t.dims.includes(g))) o.push([g, g === 'geo2' && !state.map.geo2 ? 'Département' : GEO_LABEL()[g]]);
+  return o;
+}
+function geoValues(level) {
+  if (level === 'zone') return ZONES.filter((z) => state.rows.some((r) => zoneMatch(r, z)));
+  if (!level) return [];
+  const v = new Set(state.rows.map((r) => r[level])); for (const t of state.tables) for (const r of t.rows) if (r[level]) v.add(r[level]);
+  v.delete(''); v.delete(undefined); return [...v].sort((a, b) => a.localeCompare(b, 'fr'));
+}
 function bindGeo(prefix, onChange) {
   const lv = $(prefix + 'GeoLevel'); const vv = $(prefix + 'GeoValue');
   const fill = () => { const vals = geoValues(lv.value); vv.innerHTML = vals.map((v) => `<option>${esc(v)}</option>`).join(''); vv.parentElement.classList.toggle('hide', !lv.value); };
@@ -22215,7 +22339,7 @@ function renderDashboard() {
   } else { $('tbC2t').textContent = 'Évolution (une seule période dans les données)'; if (charts.tbC2) charts.tbC2.destroy(); }
   const sec = essParDim(rows, 'secteur').lines.filter((l) => !l.sec && l.k !== 'Non renseigné' && l.poids != null).sort((a, b) => b.poids - a.poids);
   draw('tbC3', cfgBarH(sec.map((l) => l.k), sec.map((l) => +l.poids.toFixed(1)), { unit: ' %' }));
-  const lvl = f.geoLevel === 'geo1' && state.map.geo2 ? 'geo2' : f.geoLevel === 'geo2' && state.map.geo3 ? 'geo3' : !f.geoLevel && state.map.geo1 ? 'geo1' : f.geoLevel || null;
+  const lvl = f.geoLevel === 'zone' ? 'geo1' : f.geoLevel === 'geo1' && state.map.geo2 ? 'geo2' : f.geoLevel === 'geo2' && state.map.geo3 ? 'geo3' : !f.geoLevel && state.map.geo1 ? 'geo1' : f.geoLevel || null;
   if (lvl) {
     const g = essParDim(rows, lvl);
     $('tbGeo').innerHTML = htmlTable([DIM_LABELS()[lvl], 'Établissements ESS', 'Salariés ESS', 'Poids dans l’emploi', 'Poids dans l’emploi privé'],
@@ -22252,13 +22376,16 @@ let exLast = null;
 function runExplorer() {
   const ind = $('exInd').value; const dim = $('exDim').value; const champ = $('exChamp').value;
   const f = { ...getF('ex'), famille: $('exFam').value, secteur: $('exSec').value };
-  const all = filt(f); const pick = (rr) => (champ ? rr.filter((r) => r.statut === champ) : rr);
+  const tab = srcFor([dim, f.geoLevel], { needAll: champ !== 'ESS' || ['poids', 'poidsPriv'].includes(ind) });
+  if (!tab && [dim, f.geoLevel].some((d) => d && !baseHas(d))) { $('exSentence').textContent = 'Aucun tableau chargé ne permet cette ventilation pour ce champ ou cet indicateur (le poids de l’ESS demande un tableau qui contient aussi le privé hors ESS et le public).'; $('exTable').innerHTML = ''; return; }
+  if (tab && tab.autTotal && ind === 'poidsPriv') { $('exSentence').textContent = 'Ce tableau distingue seulement l’ESS et le « hors ESS » (privé et public confondus) : le poids de l’ESS dans l’emploi privé n’est pas calculable. Choisissez « Poids de l’ESS dans l’emploi ».'; $('exTable').innerHTML = ''; return; }
+  const all = filt(f, tab); const ignF = filt.ign.slice(); const pick = (rr) => (champ ? rr.filter((r) => r.statut === champ) : rr);
   const sel = pick(all); const champLbl = champ === 'ESS' ? 'l’ESS' : champ === 'Privé hors ESS' ? 'le privé hors ESS' : champ === 'Public' ? 'le secteur public' : 'l’ensemble des employeurs';
   const filtres = [f.famille && `famille : ${f.famille}`, f.secteur && `secteur : ${f.secteur}`].filter(Boolean).join(', ');
   const scope = `${terrName(f)}${filtres ? ' (' + filtres + ')' : ''}`;
   const prev = prevYear(f.t); const hasPrev = prev && state.times.includes(prev);
   if (ind === 'evol' && !hasPrev) { $('exSentence').textContent = `Pas de données pour ${prev || 'la période précédente'} : l’évolution sur un an n’est pas calculable.`; return; }
-  const selPrev = hasPrev ? pick(filt({ ...f, t: prev })) : [];
+  const selPrev = hasPrev ? pick(filt({ ...f, t: prev }, tab)) : [];
   const keyFn = dim ? (r) => dimVal(r, dim) : () => 'Total';
   const g = groupBy(sel, keyFn); const gAll = groupBy(all, keyFn); const gPriv = groupBy(all.filter((r) => r.statut !== 'Public'), keyFn); const gPrev = groupBy(selPrev, keyFn);
   const tot = agg(sel); const totAll = agg(all);
@@ -22318,6 +22445,7 @@ function runExplorer() {
     }
     const nsec = lines.filter((l) => l.sec).length; if (nsec) s += ` ${nsec} ligne(s) masquée(s) par le secret statistique.`;
   }
+  if (tab) s += ` Source : tableau « ${tab.name.split('/').pop()} »${ignF.length ? ` (filtre ${ignF.join(', ')} non applicable à ce tableau, ignoré)` : ''}.`;
   $('exSentence').textContent = s;
   const chartable = ok.filter((l) => l.k !== 'Non renseigné');
   const col = FAM_COLORS();
@@ -22385,6 +22513,16 @@ function buildPanorama(f) {
   const t1 = [line('Établissements employeurs', 'etab', fInt), line('Effectifs salariés', 'eff', fInt)];
   if (hasEtp) t1.push(line('Équivalents temps plein', 'etp', fInt)); if (hasMs) t1.push(line('Masse salariale brute', 'ms', fMEur));
   docs.push(B.table('Tableau 1 — Poids de l’ESS dans l’économie', ['', ...cols], t1, null, sourceLine(t)));
+  // Positionnement : territoire, Outre-mer, France hexagonale, France entière
+  if (state.map.geo1 && f.geoLevel === 'geo1') {
+    const zl = ZONES.map((z) => [z, cles(filt({ t, geoLevel: 'zone', geoValue: z }))]).filter(([, z]) => z.ess.n);
+    if (zl.length > 1) {
+      const omList = [...new Set(state.rows.filter((r) => OM_SET.has(r.geo1)).map((r) => r.geo1))].sort();
+      docs.push(B.table('Tableau 1 bis — Positionnement : territoire, Outre-mer et France', ['', 'Établissements ESS', 'Salariés ESS', 'Poids dans l’emploi privé'],
+        [[terr, fInt(c.ess.etab), fInt(c.ess.eff), fPct(c.poidsPriv)], ...zl.map(([z, k]) => [z === 'Outre-mer' ? `Outre-mer (${omList.length} territoires)` : z, fInt(k.ess.etab), fInt(k.ess.eff), fPct(k.poidsPriv)])], null,
+        sourceLine(t) + (omList.length ? ` Outre-mer : ${omList.join(', ')}.` : '')));
+    }
+  }
   if (c.hasPub) docs.push(B.chart('Graphique 1 — Répartition des emplois salariés', cfgDonut(['ESS', 'Privé hors ESS', 'Public'], [c.poidsTot, pct(c.priv.eff, c.ess.eff + c.priv.eff + c.pub.eff), pct(c.pub.eff, c.ess.eff + c.priv.eff + c.pub.eff)].map((x) => +x.toFixed(1)), [col.ESS, col['Privé hors ESS'], col.Public], true), sourceLine(t), 700, 300));
   const { fam, block } = famTableBlock(rows, t, 'Tableau 2 — L’ESS par famille');
   const fs = fam.lines.filter((l) => !l.sec).sort((a, b) => b.a.eff - a.a.eff);
@@ -22404,7 +22542,7 @@ function buildPanorama(f) {
   docs.push(B.table('Tableau 3 — L’ESS par secteur d’activité', ['Secteur', 'Établissements ESS', 'Salariés ESS', 'Part des salariés ESS', 'Poids de l’ESS dans le secteur'],
     sec.lines.map((l) => [l.k, fInt(sv(l.a, l.a.etab)), fInt(sv(l.a, l.a.eff)), fPct(l.sec ? 's' : l.part), fPct(l.sec ? 's' : l.poids)]), ['Ensemble', fInt(sec.totE.etab), fInt(sec.totE.eff), fPct(100), fPct(poidsMain)], sourceLine(t)));
   // III. Territoires
-  const lvl = !f.geoLevel ? (state.map.geo1 ? 'geo1' : null) : f.geoLevel === 'geo1' && state.map.geo2 ? 'geo2' : f.geoLevel === 'geo2' && state.map.geo3 ? 'geo3' : null;
+  const lvl = f.geoLevel === 'zone' ? 'geo1' : !f.geoLevel ? (state.map.geo1 ? 'geo1' : null) : f.geoLevel === 'geo1' && state.map.geo2 ? 'geo2' : f.geoLevel === 'geo2' && state.map.geo3 ? 'geo3' : null;
   if (lvl) {
     const g = essParDim(rows, lvl); const gl = g.lines.filter((l) => !l.sec && l.poids != null).sort((a, b) => b.poids - a.poids);
     docs.push(B.h2('III. L’ESS dans les territoires'));
@@ -22426,13 +22564,22 @@ function buildPanorama(f) {
     if (hasMs) { const fl = fam.lines.filter((l) => !l.sec && l.rem); docs.push(B.chart('Graphique 5 — Rémunération brute annuelle moyenne par famille (€)', cfgBarH(fl.map((l) => l.k), fl.map((l) => Math.round(l.rem)), { colors: fl.map((l) => col[l.k]), doc: true, unit: ' €' }), sourceLine(t), 800, 240)); }
   }
   // V. Taille
-  if (!state.aggregated) {
-    const tl = essParDim(rows, 'taille'); const sm = tl.lines.filter((l) => !l.sec);
-    const small = sm.filter((l) => /^(0|1 à 9)/.test(l.k)).reduce((s, l) => s + l.a.etab, 0); const big = sm.filter((l) => /^(50|250)/.test(l.k)).reduce((s, l) => s + l.a.eff, 0);
+  const tsrc = state.aggregated && !state.map.taille ? srcFor(['taille', f.geoLevel], { needAll: true }) || srcFor(['taille', f.geoLevel]) : null;
+  if (!state.aggregated || tsrc) {
+    const tl = essParDim(tsrc ? filt({ t: f.t, geoLevel: f.geoLevel, geoValue: f.geoValue }, tsrc) : rows, 'taille'); const sm = tl.lines.filter((l) => !l.sec);
+    const small = sm.filter((l) => /^(0|1 à 9|moins de 10)/i.test(l.k)).reduce((s, l) => s + l.a.etab, 0); const big = sm.filter((l) => /^(50|250)/.test(l.k)).reduce((s, l) => s + l.a.eff, 0);
     docs.push(B.h2(`${lvl ? 'V' : 'IV'}. La taille des établissements`),
       B.p(`${fPct(pct(small, tl.totE.etab))} des établissements employeurs de l’ESS comptent moins de 10 salariés, tandis que les établissements de 50 salariés et plus concentrent ${fPct(pct(big, tl.totE.eff))} des emplois.`),
       B.table('Tableau 6 — Établissements ESS par taille', ['Taille', 'Établissements', 'Salariés', 'Part des établissements', 'Part des salariés'],
         tl.lines.map((l) => [l.k, fInt(sv(l.a, l.a.etab)), fInt(sv(l.a, l.a.eff)), fPct(l.sec ? 's' : pct(l.a.etab, tl.totE.etab)), fPct(l.sec ? 's' : l.part)]), ['Ensemble', fInt(tl.totE.etab), fInt(tl.totE.eff), fPct(100), fPct(100)], sourceLine(t)));
+  }
+  // Compléments : autres croisements disponibles (CSP, sexe, type d'emploi…)
+  for (const d of dimsAvailable().filter((x) => !['famille', 'secteur', 'geo1', 'geo2', 'geo3', 'taille', 'statut', 'temps'].includes(x))) {
+    const ts = srcFor([d, f.geoLevel]); if (!ts) continue;
+    const el = essParDim(filt({ t: f.t, geoLevel: f.geoLevel, geoValue: f.geoValue }, ts), d); const ls = el.lines.filter((l) => !l.sec); if (!ls.length) continue;
+    docs.push(B.h2(`Complément — ${DIM_LABELS()[d]}`),
+      B.table(`Salariés de l’ESS par ${DIM_LABELS()[d].toLowerCase()}`, [DIM_LABELS()[d], 'Établissements', 'Salariés', 'Part des salariés'],
+        el.lines.map((l) => [l.k, fInt(sv(l.a, l.a.etab)), fInt(sv(l.a, l.a.eff)), fPct(l.sec ? 's' : l.part)]), ['Ensemble', fInt(el.totE.etab), fInt(el.totE.eff), fPct(100)], sourceLine(t)));
   }
   // VI. Évolution
   const times = state.times.filter((x) => x <= t && (state.timeType !== 'trimestre' || x.slice(5) === t.slice(5)));
@@ -22492,7 +22639,7 @@ function buildConjoncture(f) {
     B.table('Les 10 principaux secteurs de l’ESS', ['Secteur', `Salariés ${t}`, 'Solde net sur un an', 'Glissement annuel'], es.map((l) => [l.k, fInt(sv(l.a1, l.a1.eff)), l.sec ? 's' : fSgnInt(l.solde), l.sec ? 's' : fSgn(l.evol) + NB + '%']), null, sourceLine(t)),
     B.chart('Solde net d’emplois sur un an par secteur', cfgBarH(esOk.map((l) => l.k), esOk.map((l) => l.solde), { doc: true }), sourceLine(t), 900, Math.max(240, 30 * esOk.length + 60)));
   // Territoires
-  const lvl = !f.geoLevel ? (state.map.geo1 ? 'geo1' : null) : f.geoLevel === 'geo1' && state.map.geo2 ? 'geo2' : null;
+  const lvl = f.geoLevel === 'zone' ? 'geo1' : !f.geoLevel ? (state.map.geo1 ? 'geo1' : null) : f.geoLevel === 'geo1' && state.map.geo2 ? 'geo2' : null;
   if (lvl) {
     const eg = evolDim(rows, rowsP, lvl); const eo = eg.filter((l) => !l.sec).sort((a, b) => b.evol - a.evol);
     docs.push(B.h2(`${state.map.ms ? 5 : 4}. Dynamiques territoriales`), B.p(eo.length > 1 ? `Sur un an, l’emploi de l’ESS progresse le plus sur le territoire « ${eo[0].k} » (${fSgn(eo[0].evol)} %) ; l’évolution la moins favorable concerne « ${eo.at(-1).k} » (${fSgn(eo.at(-1).evol)} %).` : ''),
@@ -22701,9 +22848,9 @@ function init() {
   $('nav').addEventListener('click', (e) => { const b = e.target.closest('button[data-v]'); if (b) { showView(b.dataset.v); $('nav').classList.remove('open'); window.scrollTo(0, 0); } });
   if ($('menuBtn')) $('menuBtn').onclick = () => $('nav').classList.toggle('open');
   const drop = $('drop'); const file = $('file');
-  drop.onclick = () => file.click(); file.onchange = () => file.files[0] && readFile(file.files[0]).catch(err);
+  drop.onclick = () => file.click(); file.onchange = () => { const fs = [...file.files]; if (fs.length > 1) loadTables(fs.map((x) => ({ name: x.name, path: x.name, file: x }))).catch(err); else if (fs[0]) readFile(fs[0]).catch(err); };
   drop.ondragover = (e) => { e.preventDefault(); drop.classList.add('over'); }; drop.ondragleave = () => drop.classList.remove('over');
-  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('over'); if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]).catch(err); };
+  drop.ondrop = (e) => { e.preventDefault(); drop.classList.remove('over'); const fs = [...e.dataTransfer.files]; if (fs.length > 1) loadTables(fs.map((x) => ({ name: x.name, path: x.name, file: x }))).catch(err); else if (fs[0]) readFile(fs[0]).catch(err); };
   $('sheet').onchange = (e) => loadSheet(e.target.value);
   $('btnApply').onclick = () => { try { applyMapping(); } catch (e) { err(e); } };
   $('exRun').onclick = () => { try { runExplorer(); } catch (e) { err(e); } }; $('exXlsx').onclick = exportExplorer;
@@ -22721,7 +22868,7 @@ function init() {
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => state.rows.length && renderDashboard());
 }
 function err(e) { console.error(e); alert('Erreur : ' + (e && e.message ? e.message : e)); }
-window.ESS = { state, S, filt, cles, essParDim, evolDim, buildPanorama, buildConjoncture, buildPortrait, buildChiffre, applyMapping, readFile, setRaw, parseCSV };
+window.ESS = { srcFor, dimsAvailable, state, S, filt, cles, essParDim, evolDim, buildPanorama, buildConjoncture, buildPortrait, buildChiffre, applyMapping, readFile, setRaw, parseCSV };
 
 /* ======================================================================
    Module ESS France Outre-mer : comparaisons inter-territoires, dynamiques
@@ -24096,6 +24243,8 @@ function syncRender() {
   const rows = SYNC_FILES.map((f, i) => `<tr><td style="text-align:left"><strong>${esc(f.path)}</strong>${last && last.path === f.path ? (last.mtime < f.mtime ? ' <span class="badge" style="background:var(--warn-bg);color:var(--warn)">version plus récente</span>' : ' <span class="badge ok">chargée</span>') : ''}</td><td>${fmtDate(f.mtime)}</td><td>${fmtSize(f.size)}</td><td style="text-align:right"><button class="b primary" data-sy="${i}">Charger</button></td></tr>`).join('');
   box.innerHTML = `<p class="muted" style="margin:6px 0">Dossier : <strong>${esc(SYNC_DIR.name)}</strong> · ${SYNC_FILES.length} base(s) trouvée(s) (CSV, Excel), les plus récentes en premier.</p>${SYNC_FILES.length ? `<div class="tw" style="max-height:300px"><table class="t"><thead><tr><th>Fichier</th><th>Modifié le</th><th>Taille</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="msg warn">Aucun fichier CSV ou Excel trouvé dans ce dossier.</div>'}`;
   box.querySelectorAll('[data-sy]').forEach((b) => { b.onclick = () => syncLoad(SYNC_FILES[+b.dataset.sy]); });
+  const grp = new Map(); for (const f of SYNC_FILES) { const p = f.path.split('/'); if (p.length >= 3 && /\.xlsx?$/i.test(f.path)) { const k = p.slice(0, 2).join('/'); if (!grp.has(k)) grp.set(k, []); grp.get(k).push(f); } }
+  if (grp.size) { const gd = document.createElement('div'); gd.style.margin = '10px 0'; gd.innerHTML = '<p class="muted" style="margin:0 0 6px">Charger tous les tableaux d’un millésime en une fois :</p>' + [...grp].map(([k, v], i) => `<button class="b primary" data-grp="${i}" style="margin:0 8px 6px 0">${esc(k)} (${v.length} fichiers)</button>`).join(''); box.appendChild(gd); gd.querySelectorAll('[data-grp]').forEach((b) => { b.onclick = () => syncLoadGroup([...grp][+b.dataset.grp]); }); }
   $('syLast').classList.toggle('hide', !last);
   if (last) $('syLast').textContent = `Recharger la dernière base (${last.path})`;
 }
@@ -24105,6 +24254,15 @@ async function syncLoad(f) {
     const file = await f.h.getFile(); await readFile(file);
     SYNC_LOADED = { path: f.path, mtime: file.lastModified }; lsSet('ess_sync_last', SYNC_LOADED); syncRender();
     $('syMsg').innerHTML = `<span class="badge ok">${esc(f.path)} lu (${fmtDate(file.lastModified)}). Vérifiez la correspondance des colonnes puis validez.</span>`;
+  } catch (e) { err(e); }
+}
+async function syncLoadGroup([k, files]) {
+  try {
+    if (!SYNC_ONLINE && !(await syncPerm(SYNC_DIR, false))) throw new Error('autorisation refusée');
+    $('syMsg').innerHTML = `<span class="muted">Lecture de ${files.length} fichiers (${esc(k)})…</span>`;
+    const items = []; for (const f of files) items.push({ name: f.path.split('/').pop(), path: f.path, file: await f.h.getFile() });
+    const y = (k.split('/')[1] || '').match(/^(19|20)\d\d$/); await loadTables(items, { year: y ? y[0] : '' });
+    $('syMsg').innerHTML = `<span class="badge ok">${esc(k)} : ${files.length} fichiers lus. Voir « Tableaux chargés » plus bas.</span>`;
   } catch (e) { err(e); }
 }
 async function syncConnect(h) {
