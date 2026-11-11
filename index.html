@@ -21780,7 +21780,7 @@ async function readFile(file) {
     if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
     const r = parseCSV(text); setRaw(r.cols, r.data); $('sheetRow').hidden = true;
   } else {
-    state.wb = XLSX.read(buf, { type: 'array' });
+    state.wb = XLSX.read(buf, { type: 'array', dense: true, cellStyles: false, cellNF: false, cellText: false });
     const sel = $('sheet'); sel.innerHTML = state.wb.SheetNames.map((n) => `<option>${esc(n)}</option>`).join('');
     $('sheetRow').hidden = state.wb.SheetNames.length < 2;
     const best = state.wb.SheetNames.find((n) => { const h = XLSX.utils.sheet_to_json(state.wb.Sheets[n], { header: 1, range: 0 })[0] || []; const k = h.map(normKey); return k.includes('lib_social_dom') && k.includes('etab'); }) || state.wb.SheetNames[0];
@@ -21836,7 +21836,7 @@ function inseeNormalize(cols, data) {
   }
   return { cols: Object.keys(out[0] || {}), data: out, geo: geoK === 'reg' ? 'régions' : 'départements', typ: T };
 }
-function floresConvert(cols, data) {
+function floresConvert(cols, data, yearOv) {
   const nk = Object.fromEntries(cols.map((c) => [normKey(c), c]));
   if (!(nk.lib_social_dom && nk.etab && (nk.total_postes || nk.eff_eqtp))) return null;
   const geo = nk.reg || nk.dep || nk.departement || nk.epci || nk.ze || nk.commune; if (!geo) return null;
@@ -21856,7 +21856,7 @@ function floresConvert(cols, data) {
   }
   const out = []; const groups = new Map();
   for (const r of rows.values()) { const k = r.g + '|' + r.fam; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(r); }
-  const year = ($('millesime')?.value || '').trim() || (String(state.fileName).match(/(19|20)\d\d/) || [''])[0];
+  const year = yearOv || ($('millesime')?.value || '').trim() || (String(state.fileName).match(/(19|20)\d\d/) || [''])[0];
   for (const [k, list] of groups) {
     const par = parents.get(k); const res = {}; const unk = {};
     for (const [m, c] of mes) { // reconstitution des cases secrètes à partir du total publié (les totaux restent exacts)
@@ -21967,10 +21967,10 @@ function inseeTable(cols, data, ctx = {}, level = 'reg') {
 }
 const baseHas = (d) => (d === 'taille' ? !state.aggregated || !!state.map.taille : d === 'zone' ? !!state.map.geo1 : d === 'geo1' || d === 'geo2' || d === 'geo3' ? !!state.map[d] : ['famille', 'secteur', 'statut', 'temps', '', undefined, null].includes(d));
 /** Choisit le tableau complémentaire qui porte les dimensions demandées (null = tableau de base). */
-function srcFor(dims, { needAll = false } = {}) {
+function srcFor(dims, { needAll = false, t = '' } = {}) {
   const need = dims.filter((d) => d && !baseHas(d)); if (!need.length) return null;
   const bs = new Set(state.rows.map((r) => r.secteur));
-  const c = state.tables.filter((t) => need.every((d) => t.dims.includes(d)) && (!needAll || t.nonESS));
+  let c = state.tables.filter((x) => need.every((d) => x.dims.includes(d)) && (!needAll || x.nonESS)); if (t && c.some((x) => x.years && x.years.has(t))) c = c.filter((x) => x.years && x.years.has(t));
   c.sort((a, b) => ([...b.secteurs].filter((x) => bs.has(x)).length / b.secteurs.size) - ([...a.secteurs].filter((x) => bs.has(x)).length / a.secteurs.size) || (b.nonESS - a.nonESS));
   return c[0] || null;
 }
@@ -21982,37 +21982,64 @@ function renderTablesPanel(ign = [], refMsg = '') {
     ...state.tables.map((t) => `<tr><td style="text-align:left">${esc(t.name)}</td><td style="text-align:left">${esc(t.dims.filter((d) => d !== 'temps').map((d) => ({ geo1: 'territoire', secteur: 'secteur (typologie ' + t.typ + ')', famille: 'famille', statut: 'statut' }[d] || (EX_LAB[d] || d).toLowerCase())).join(' × '))}${t.nonESS ? '' : ' (ESS seul)'}</td><td>${fInt(t.rows.length)}</td></tr>`),
     ...(refMsg ? [`<tr><td style="text-align:left" colspan="3">Référentiel géographique — ${esc(refMsg)}</td></tr>`] : (state.tables.some((t) => t.level === 'epci') && !state.geoRef ? ['<tr><td style="text-align:left;color:var(--warn)" colspan="3">Référentiel géographique absent : les intercommunalités d’Outre-mer sont rattachées par leur nom (approximatif) et celles de l’Hexagone ne le sont pas. Déposez le fichier de composition des EPCI de l’INSEE dans le dossier Paramètres.</td></tr>'] : [])),
     ...ign.map(([n, why]) => `<tr><td style="text-align:left;color:var(--muted)">${esc(n)}</td><td style="text-align:left;color:var(--muted)" colspan="2">non intégré : ${esc(why)}</td></tr>`)].join('');
-  el.innerHTML = `<div class="card" style="margin-top:12px"><h3>Tableaux chargés (${(state.rows.length ? 1 : 0) + state.tables.length})</h3><p class="muted" style="margin-top:0">Chaque tableau apporte un croisement. Pour chaque analyse, l’outil utilise le tableau qui porte la ventilation demandée, sans jamais additionner deux tableaux entre eux.</p><div class="tw"><table class="t"><thead><tr><th>Fichier</th><th>Croisement</th><th>Lignes</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  el.innerHTML = `<div class="card" style="margin-top:12px"><h3>Tableaux chargés (${(state.rows.length ? 1 : 0) + state.tables.length})</h3><p class="muted" style="margin-top:0">Chaque tableau apporte un croisement. Pour chaque analyse, l’outil utilise le tableau qui porte la ventilation demandée, sans jamais additionner deux tableaux entre eux.</p><div class="tw"><table class="t"><thead><tr><th>Fichier</th><th>Croisement</th><th>Lignes</th></tr></thead><tbody>${rows}</tbody></table></div><p style="margin:10px 0 0"><button class="b" id="cacheClear">Vider la mémoire locale des fichiers</button> <span class="muted">Les fichiers inchangés sont relus instantanément depuis cette mémoire ; videz-la en cas de doute.</span></p></div>`;
+  const cb = $('cacheClear'); if (cb) cb.onclick = async () => { await cClear(); cb.textContent = 'Mémoire locale vidée'; };
+}
+// --- Cache local des fichiers déjà lus (IndexedDB) : un fichier inchangé n'est ni téléchargé ni relu -----------------
+const CACHE_VER = '7';
+const cdb = () => new Promise((res, rej) => { const o = indexedDB.open('ess_cache', 1); o.onupgradeneeded = () => o.result.createObjectStore('u'); o.onerror = () => rej(o.error); o.onsuccess = () => res(o.result); });
+async function cGet(k) { try { const db = await cdb(); return await new Promise((res) => { const r = db.transaction('u').objectStore('u').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); } catch { return null; } }
+async function cPut(k, v) { try { const db = await cdb(); await new Promise((res) => { const t = db.transaction('u', 'readwrite'); t.objectStore('u').put(v, k); t.oncomplete = res; t.onerror = res; t.onabort = res; }); } catch { /* cache indisponible */ } }
+async function cClear() { try { const db = await cdb(); await new Promise((res) => { const t = db.transaction('u', 'readwrite'); t.objectStore('u').clear(); t.oncomplete = res; t.onerror = res; }); } catch { /* rien */ } }
+async function pool(list, n, fn) { const out = new Array(list.length); let i = 0; await Promise.all(Array.from({ length: Math.min(n, list.length) }, async () => { while (i < list.length) { const k = i++; out[k] = await fn(list[k], k); } })); return out; }
+const yearOfPath = (p) => { const m = String(p || '').match(/(?:^|\/)((?:19|20)\d\d)(?:\/|$)/); return m ? m[1] : ''; };
+const isRefName = (it) => /\.(xlsx|xls|xlsm)$/i.test(it.name) && !/^Tableau_FLORES/i.test(it.name) && /geo|epci|appart|compos|commune|referentiel|zonage/i.test(it.path || it.name);
+async function unitKey(it, extra = '') { return [CACHE_VER, it.path || it.name, it.mtime || it.file?.lastModified || 0, it.size || it.file?.size || 0, extra].join('|'); }
+/** Lit un fichier et le transforme en « unité » : tableau de base d'un millésime, tableaux croisés, référentiel ou rejet. */
+async function loadUnit(it, refSig) {
+  const key = await unitKey(it, refSig); const hit = await cGet(key); if (hit) return { ...hit, cached: true };
+  const out = await (async () => {
+    if (!/\.(xlsx|xls|xlsm)$/i.test(it.name)) return { kind: 'ign', why: 'format non INSEE' };
+    const file = it.file || await it.getFile(); const wb = XLSX.read(await file.arrayBuffer(), { type: 'array', dense: true, cellStyles: false, cellNF: false, cellText: false });
+    if (isRefName(it)) { const gr = geoRefFromWb(wb); if (gr) return { kind: 'ref', entries: [...gr] }; }
+    let sd = null; for (const n of wb.SheetNames) { const x = sheetData(wb.Sheets[n]); if (x.cols.some((c) => /^etablissements$/i.test(String(c)))) { sd = x; break; } }
+    if (!sd) return { kind: 'ign', why: 'tableau INSEE non reconnu' };
+    const year = yearOfPath(it.path) || sd.year || ($('millesime')?.value || '').trim();
+    const ins = inseeNormalize(sd.cols, sd.data);
+    if (ins && !ins.unsupported && ins.geo === 'régions') { const fl = floresConvert(ins.cols, ins.data, year); return fl ? { kind: 'base', year, cols: fl.cols, data: fl.data } : { kind: 'ign', why: 'tableau de base non convertible' }; }
+    const tables = []; const why = [];
+    for (const lv of ['reg', 'dep', 'epci']) { const t = inseeTable(sd.cols, sd.data, { year, name: (it.path || it.name).split('/').pop() }, lv); if (t && !t.skip) tables.push(t); else if (t) why.push(t.skip); }
+    return tables.length ? { kind: 'tables', year, tables } : { kind: 'ign', why: why.filter((w) => !/^pas de niveau/.test(w))[0] || why[0] || 'non reconnu' };
+  })();
+  await cPut(key, out); return out;
 }
 async function loadTables(items, ctx = {}) {
-  const msg = $('loadMsg'); msg.innerHTML = `<div class="msg">Lecture de ${items.length} tableaux…</div>`;
-  const bases = []; const extra = []; const ign = []; let refMsg = '';
-  for (const it of items) { // référentiel géographique (Paramètres) : lu en premier
-    if (!/\.(xlsx|xls|xlsm)$/i.test(it.name) || /^Tableau_FLORES/i.test(it.name) || !/geo|epci|appart|compos|commune|referentiel|zonage/i.test(it.path || it.name)) continue;
-    try { const gr = geoRefFromWb(XLSX.read(await it.file.arrayBuffer(), { type: 'array' })); if (gr) { state.geoRef = gr; it.__ref = true; refMsg = `${it.name} : ${fInt(gr.size)} intercommunalités rattachées à leur région`; } } catch { /* fichier ignoré */ }
+  const msg = $('loadMsg'); const t0 = performance.now(); let done = 0; let hits = 0;
+  const tick = () => { msg.innerHTML = `<div class="msg">Lecture des tableaux : ${done} / ${items.length}${hits ? ` (dont ${hits} déjà en mémoire locale)` : ''}…</div>`; };
+  tick(); const ign = []; let refMsg = '';
+  const refs = items.filter(isRefName); const data = items.filter((x) => !isRefName(x));
+  for (const it of refs) { const u = await loadUnit(it, 'ref'); done++; if (u.cached) hits++; if (u.kind === 'ref') { state.geoRef = new Map(u.entries); refMsg = `${it.name} : ${fInt(u.entries.length)} intercommunalités rattachées à leur région`; } tick(); }
+  const refSig = state.geoRef ? 'g' + state.geoRef.size : 'g0';
+  const units = await pool(data, 4, async (it) => { try { const u = await loadUnit(it, refSig); done++; if (u.cached) hits++; tick(); return [it, u]; } catch (e) { done++; tick(); return [it, { kind: 'ign', why: 'fichier illisible (' + String(e.message || e).slice(0, 60) + ')' }]; } });
+  // Assemblage : un tableau de base par millésime (fusionnés), tableaux croisés fusionnés d'un millésime à l'autre
+  const byYear = new Map(); const merged = new Map();
+  for (const [it, u] of units) {
+    if (u.kind === 'ign') { ign.push([it.name, u.why]); continue; }
+    if (u.kind === 'base') { if (!byYear.has(u.year)) byYear.set(u.year, { it, u }); else ign.push([it.name, 'doublon du tableau de base ' + u.year]); continue; }
+    for (const t of u.tables || []) {
+      const k = t.name.replace(/\.xlsx?$/i, '').replace(/ \(.*\)$/, '') + '|' + (t.level || 'reg'); const m = merged.get(k);
+      if (!m) merged.set(k, { ...t, years: new Set([t.year]), name: t.name }); else { m.rows = m.rows.concat(t.rows); m.years.add(t.year); m.nonESS = m.nonESS || t.nonESS; for (const x of t.secteurs) m.secteurs.add(x); for (const d of t.dims) if (!m.dims.includes(d)) m.dims.push(d); }
+    }
   }
-  for (const it of items) {
-    if (it.__ref) continue;
-    try {
-      if (!/\.(xlsx|xls|xlsm)$/i.test(it.name)) { ign.push([it.name, 'format non INSEE']); continue; }
-      const wb = XLSX.read(await it.file.arrayBuffer(), { type: 'array' }); let sd = null;
-      for (const n of wb.SheetNames) { const x = sheetData(wb.Sheets[n]); if (x.cols.some((c) => /^etablissements$/i.test(String(c)))) { sd = x; break; } }
-      if (!sd) { ign.push([it.name, 'tableau INSEE non reconnu']); continue; }
-      const year = ctx.year || sd.year || ($('millesime')?.value || '').trim();
-      const ins = inseeNormalize(sd.cols, sd.data);
-      if (ins && !ins.unsupported && ins.geo === 'régions') { bases.push({ it, sd, ins, year }); continue; }
-      let n = 0; const why = [];
-      for (const lv of ['reg', 'dep', 'epci']) { const t = inseeTable(sd.cols, sd.data, { year, name: it.path || it.name }, lv); if (t && !t.skip) { extra.push(t); n++; } else if (t) why.push(t.skip); }
-      if (!n) ign.push([it.name, why.filter((w) => !/^pas de niveau/.test(w))[0] || why[0] || 'non reconnu']);
-    } catch (e) { ign.push([it.name, 'fichier illisible (' + String(e.message || e).slice(0, 60) + ')']); }
-  }
-  const b = bases.find((x) => x.ins.geo === 'régions') || bases[0];
-  if (!b) { msg.innerHTML = '<div class="msg warn">Aucun tableau « territoire × famille juridique × typologie sectorielle » parmi les fichiers : il sert de base à l’analyse (par exemple le tableau FLORES_6 pour les régions).</div>'; state.tables = []; renderTablesPanel(ign); return; }
-  for (const o of bases) if (o !== b) { ign.push([o.it.name, 'doublon du tableau de base']); }
-  if (b.year && $('millesime')) $('millesime').value = b.year;
-  state.fileName = b.it.path || b.it.name; state.wb = null; $('sheetRow').hidden = true;
-  state.tables = extra; setRaw(b.sd.cols, b.sd.data); applyMapping(); renderTablesPanel(ign, refMsg);
-  msg.innerHTML += `<div class="msg ok">${items.length} fichiers lus : 1 tableau de base et ${extra.length} tableau(x) croisé(s) complémentaire(s)${ign.length ? `, ${ign.length} non intégré(s) (voir ci-dessous)` : ''}.</div>`;
+  if (!byYear.size) { msg.innerHTML = '<div class="msg warn">Aucun tableau « territoire × famille juridique × typologie sectorielle » parmi les fichiers : il sert de base à l’analyse (par exemple le tableau FLORES_6 pour les régions).</div>'; state.tables = []; renderTablesPanel(ign, refMsg); return; }
+  const ys = [...byYear.keys()].sort(); const first = byYear.get(ys[0]).u; const rows = [];
+  for (const y of ys) rows.push(...byYear.get(y).u.data);
+  state.tables = [...merged.values()].map((t) => ({ ...t, name: t.name + ([...t.years].filter(Boolean).length > 1 ? ' (' + [...t.years].sort().join(', ') + ')' : '') }));
+  state.fileName = (ctx.label || 'Données') + (ys.length > 1 ? ` · ${ys[0]}–${ys.at(-1)}` : ' · ' + ys[0]); state.wb = null; $('sheetRow').hidden = true;
+  if ($('millesime')) $('millesime').value = ys.at(-1);
+  setRaw(first.cols, rows); applyMapping(); renderTablesPanel(ign, refMsg);
+  const sec = ((performance.now() - t0) / 1000).toFixed(1).replace('.', ',');
+  msg.innerHTML = `<div class="msg ok">${items.length} fichiers traités en ${sec} s : ${ys.length} millésime(s) (${ys.join(', ')}), ${state.tables.length} tableau(x) croisé(s) complémentaire(s)${hits ? `, ${hits} fichier(s) relu(s) depuis la mémoire locale (inchangés)` : ''}${ign.length ? `, ${ign.length} non intégré(s) (voir ci-dessous)` : ''}.</div>`;
 }
 function setRaw(cols, data) {
   const ins = (() => { try { return inseeNormalize(cols, data); } catch (e) { console.error(e); return null; } })();
@@ -22401,10 +22428,10 @@ let exLast = null;
 function runExplorer() {
   const ind = $('exInd').value; const dim = $('exDim').value; const champ = $('exChamp').value;
   const f = { ...getF('ex'), famille: $('exFam').value, secteur: $('exSec').value };
-  const tab = srcFor([dim, f.geoLevel], { needAll: champ !== 'ESS' || ['poids', 'poidsPriv'].includes(ind) });
+  const tab = srcFor([dim, f.geoLevel], { needAll: champ !== 'ESS' || ['poids', 'poidsPriv'].includes(ind), t: f.t });
   if (!tab && [dim, f.geoLevel].some((d) => d && !baseHas(d))) { $('exSentence').textContent = 'Aucun tableau chargé ne permet cette ventilation pour ce champ ou cet indicateur (le poids de l’ESS demande un tableau qui contient aussi le privé hors ESS et le public).'; $('exTable').innerHTML = ''; return; }
   if (tab && tab.autTotal && ind === 'poidsPriv') { $('exSentence').textContent = 'Ce tableau distingue seulement l’ESS et le « hors ESS » (privé et public confondus) : le poids de l’ESS dans l’emploi privé n’est pas calculable. Choisissez « Poids de l’ESS dans l’emploi ».'; $('exTable').innerHTML = ''; return; }
-  const all = filt(f, tab); const ignF = filt.ign.slice(); const pick = (rr) => (champ ? rr.filter((r) => r.statut === champ) : rr);
+  const all = filt(dim === 'temps' ? { ...f, t: '' } : f, tab); const ignF = filt.ign.slice(); const pick = (rr) => (champ ? rr.filter((r) => r.statut === champ) : rr);
   const sel = pick(all); const champLbl = champ === 'ESS' ? 'l’ESS' : champ === 'Privé hors ESS' ? 'le privé hors ESS' : champ === 'Public' ? 'le secteur public' : 'l’ensemble des employeurs';
   const filtres = [f.famille && `famille : ${f.famille}`, f.secteur && `secteur : ${f.secteur}`].filter(Boolean).join(', ');
   const scope = `${terrName(f)}${filtres ? ' (' + filtres + ')' : ''}`;
@@ -22589,7 +22616,7 @@ function buildPanorama(f) {
     if (hasMs) { const fl = fam.lines.filter((l) => !l.sec && l.rem); docs.push(B.chart('Graphique 5 — Rémunération brute annuelle moyenne par famille (€)', cfgBarH(fl.map((l) => l.k), fl.map((l) => Math.round(l.rem)), { colors: fl.map((l) => col[l.k]), doc: true, unit: ' €' }), sourceLine(t), 800, 240)); }
   }
   // V. Taille
-  const tsrc = state.aggregated && !state.map.taille ? srcFor(['taille', f.geoLevel], { needAll: true }) || srcFor(['taille', f.geoLevel]) : null;
+  const tsrc = state.aggregated && !state.map.taille ? srcFor(['taille', f.geoLevel], { needAll: true, t }) || srcFor(['taille', f.geoLevel], { t }) : null;
   if (!state.aggregated || tsrc) {
     const tl = essParDim(tsrc ? filt({ t: f.t, geoLevel: f.geoLevel, geoValue: f.geoValue }, tsrc) : rows, 'taille'); const sm = tl.lines.filter((l) => !l.sec);
     const small = sm.filter((l) => /^(0|1 à 9|moins de 10)/i.test(l.k)).reduce((s, l) => s + l.a.etab, 0); const big = sm.filter((l) => /^(50|250)/.test(l.k)).reduce((s, l) => s + l.a.eff, 0);
@@ -22600,7 +22627,7 @@ function buildPanorama(f) {
   }
   // Compléments : autres croisements disponibles (CSP, sexe, type d'emploi…)
   for (const d of dimsAvailable().filter((x) => !['famille', 'secteur', 'geo1', 'geo2', 'geo3', 'taille', 'statut', 'temps'].includes(x))) {
-    const ts = srcFor([d, f.geoLevel]); if (!ts) continue;
+    const ts = srcFor([d, f.geoLevel], { t }); if (!ts) continue;
     const el = essParDim(filt({ t: f.t, geoLevel: f.geoLevel, geoValue: f.geoValue }, ts), d); const ls = el.lines.filter((l) => !l.sec); if (!ls.length) continue;
     docs.push(B.h2(`Complément — ${DIM_LABELS()[d]}`),
       B.table(`Salariés de l’ESS par ${DIM_LABELS()[d].toLowerCase()}`, [DIM_LABELS()[d], 'Établissements', 'Salariés', 'Part des salariés'],
@@ -22893,7 +22920,7 @@ function init() {
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => state.rows.length && renderDashboard());
 }
 function err(e) { console.error(e); alert('Erreur : ' + (e && e.message ? e.message : e)); }
-window.ESS = { srcFor, dimsAvailable, state, S, filt, cles, essParDim, evolDim, buildPanorama, buildConjoncture, buildPortrait, buildChiffre, applyMapping, readFile, setRaw, parseCSV };
+window.ESS = { sheetData, loadTables, cClear, srcFor, dimsAvailable, state, S, filt, cles, essParDim, evolDim, buildPanorama, buildConjoncture, buildPortrait, buildChiffre, applyMapping, readFile, setRaw, parseCSV };
 
 /* ======================================================================
    Module ESS France Outre-mer : comparaisons inter-territoires, dynamiques
@@ -23693,6 +23720,19 @@ MÉTHODE D’EXPERT
 - Veille : quand on te le demande, cherche les actualités économiques et sociales récentes (Outre-mer et national) utiles à l’ESS, ne retiens que des faits datés et sourcés, et propose les événements marquants avec proposer_evenement (ils restent « à vérifier » jusqu’à validation humaine).
 - Rédaction : titres-messages, chapeau chiffré, phrases courtes, chiffres au format français (espace insécable, virgule décimale, « points » pour les écarts de parts), sigles développés, note de méthode et sources en fin de texte.
 
+COMPÉTENCES D’EXPERT (à mobiliser spontanément, sans jargon inutile)
+- Statistique : tu distingues population exhaustive (Flores, Sirene : données administratives, pas d’erreur d’échantillonnage, donc pas de « significativité » au sens de l’inférence) et sources par sondage (enquêtes : intervalles de confiance, pondération) ; tu maîtrises indices et nombres-indices, taux de croissance annuel moyen, moyennes pondérées contre moyennes simples, médianes et quantiles, dispersion (écart-type, coefficient de variation), concentration (Herfindahl-Hirschman, Gini), spécificité (quotient de localisation), séries temporelles (tendance, saisonnalité, ruptures), effet de structure et effet propre (décomposition shift-share), effets de composition (paradoxe de Simpson), petits effectifs et volatilité, secret statistique primaire et secondaire. Tu expliques toujours « points de pourcentage » contre « pour cent ».
+- Économie : emploi et masse salariale, productivité apparente, valeur ajoutée, économie ultramarine (insularité, poids de l’emploi public et de l’action sociale, dépendance aux transferts, vie chère, démographie, informel et économie non déclarée, structure des financements : subventions, commande publique, tarification, contrats aidés/PEC, IAE), économie sociale (statuts, gouvernance, lucrativité limitée), économie du secteur non lucratif (substitution public/privé, délégation de service public), cycles et chocs (COVID, inflation, crises sociales et climatiques, réformes).
+- Économétrie et science des données : tu sais cadrer une question causale (effet d’une politique, d’un choc) et dire ce qu’une approche descriptive permet ou non ; tu connais les limites des régressions sur petits échantillons (corrélation écologique, hétéroscédasticité, variables omises, endogénéité), l’intérêt des doubles différences, des comparaisons synthétiques et des études d’événement quand les données le permettent, et tu proposes honnêtement la bonne méthode même lorsque les données actuelles ne la permettent pas. Pour toute estimation, utilise les outils de l’application (tendance_et_regression, indicateurs_avances, calculer) ; tu n’inventes jamais un coefficient. Tu repères les ruptures de séries, les valeurs aberrantes, les doublons et les incohérences de périmètre, et tu contrôles tes calculs (totaux, recoupements entre tableaux, ordres de grandeur).
+- Données : l’observatoire combine plusieurs tableaux INSEE d’un même millésime (territoire × famille × secteur, taille d’établissement, sexe, CSP, type d’emploi…) et plusieurs niveaux géographiques (France entière, Outre-mer, France hexagonale, région, département, intercommunalité). Chaque analyse s’appuie sur UN tableau porteur de la ventilation demandée : tu n’additionnes jamais deux tableaux et tu cites le tableau utilisé. Mayotte est hors champ Flores : tu le dis et tu ne la compares jamais directement à Flores.
+
+VALORISATION DE LA DONNÉE (tu es aussi un communicant)
+- Tu écris pour un public précis (élus, financeurs, têtes de réseau, entrepreneurs de l’ESS, presse, grand public) : tu demandes ou tu déduis la cible, puis tu adaptes registre, longueur et niveau de détail.
+- Un message principal par production, énoncé en une phrase avec un chiffre, puis trois à cinq preuves. Chaque chiffre est mis en perspective (comparaison au niveau national, à l’Outre-mer, à l’année précédente ; équivalent concret : « l’équivalent de X emplois », « un emploi privé sur Y »). Tu relies toujours les chiffres à leur signification pour les acteurs (« ce que cela change »).
+- Formats : note de synthèse, communiqué, fiche chiffres-clés, publication complète, trame de présentation, texte de post pour les réseaux, réponse à un journaliste ou à un élu (éléments de langage sourcés, avec les précautions de lecture). Titres-messages plutôt que titres descriptifs, verbes d’action, pas de jargon : sigles développés, vocabulaire de l’ESS expliqué.
+- Visualisation : tu recommandes le graphique adapté au message (barres horizontales classées pour comparer, courbe pour une évolution, jamais de camembert au-delà de quatre parts, jamais d’axe tronqué trompeur, base 100 pour comparer des trajectoires), tu annotes l’essentiel et tu cites la source sous chaque graphique.
+- Honnêteté de la communication : valoriser n’est pas enjoliver. Tu ne retiens pas un chiffre flatteur en cachant le contexte, tu signales les limites et les secrets statistiques, tu proposes deux niveaux de lecture (message simple + précisions pour les experts) et tu distingues faits, interprétations et recommandations.
+
 FORMAT DES RÉPONSES
 Commence par la réponse en deux ou trois phrases, puis le détail (tableaux en markdown si utile), puis « Sources » (liens cliquables : outil de l’application avec source et millésime des données, pages web consultées avec leur date). Réponds en français.
 
@@ -23704,7 +23744,7 @@ Références de comparaison : ${(S.references || '').split('\n').filter(Boolean)
 function iaDescribeData() {
   const M = state.map; const terrs = M.geo1 ? geoValues('geo1') : [];
   const secs = [...new Set(state.rows.filter(ESSf).map((r) => r.secteur))];
-  return `Données chargées : « ${state.fileName} », ${state.rows.length} lignes, ${state.aggregated ? 'agrégées' : 'une ligne par établissement'}, périodes ${state.times.join(', ')} (${state.timeType}). Colonnes disponibles : ${Object.entries(M).filter(([, v]) => v).map(([k]) => k).join(', ')}. ${M.geo1 ? `Territoires (niveau geo1 = ${GEO_LABEL().geo1}) : ${terrs.join(', ')}.` : ''} ${M.geo2 ? `Niveau geo2 = ${GEO_LABEL().geo2}.` : ''} Familles présentes : ${famsPresent().join(', ')}. Secteurs : ${secs.join(' ; ')}.`;
+  return `Données chargées : « ${state.fileName} », ${state.rows.length} lignes, ${state.aggregated ? 'agrégées' : 'une ligne par établissement'}, périodes ${state.times.join(', ')} (${state.timeType}). Colonnes disponibles : ${Object.entries(M).filter(([, v]) => v).map(([k]) => k).join(', ')}. ${M.geo1 ? `Territoires (niveau geo1 = ${GEO_LABEL().geo1}) : ${terrs.join(', ')}.` : ''} ${M.geo2 ? `Niveau geo2 = ${GEO_LABEL().geo2}.` : ''} Familles présentes : ${famsPresent().join(', ')}. Secteurs : ${secs.join(' ; ')}.${state.tables.length ? ` Tableaux croisés complémentaires chargés (chaque tableau est utilisé séparément, jamais additionné aux autres) : ${state.tables.map((t) => `${t.name.split('/').pop()} [${t.dims.filter((d) => d !== 'temps').join(' × ')}${t.nonESS ? '' : ', ESS seul'}]`).join(' ; ')}.` : ''} Niveaux géographiques utilisables (territoire_niveau) : zone (valeurs : ${ZONES.join(', ')}), ${['geo1', 'geo2', 'geo3'].filter((g) => state.map[g] || state.tables.some((t) => t.dims.includes(g))).map((g) => `${g} = ${GEO_LABEL()[g]}`).join(', ')}. Ventilations disponibles : ${dimsAvailable().join(', ')}.`;
 }
 
 // ----------------------------------------------------------------------
@@ -23729,11 +23769,17 @@ const IA_TOOLS = [
   { name: 'calculer', description: 'Calcule un indicateur sur les données chargées, avec secret statistique appliqué. Renvoie un tableau (une ligne par modalité de la ventilation) avec établissements, effectifs, poids de l’ESS, parts, évolution sur un an.',
     schema: { type: 'object', properties: {
       indicateur: { type: 'string', enum: ['effectifs', 'etablissements', 'poids_emploi', 'poids_emploi_prive', 'repartition', 'evolution_1an', 'etp', 'masse_salariale', 'remuneration_moyenne', 'part_femmes', 'part_cdi'] },
-      ventilation: { type: 'string', enum: ['aucune', 'famille', 'secteur', 'geo1', 'geo2', 'geo3', 'taille', 'statut', 'temps'] },
+      ventilation: { type: 'string', description: 'aucune, famille, secteur, geo1, geo2, geo3, taille, statut, temps, ou un autre croisement chargé (csp, sexe, typemp…) : voir decrire_donnees' },
       champ: { type: 'string', enum: ['ESS', 'Privé hors ESS', 'Public', 'Tous'], description: 'Champ des établissements (défaut ESS)' },
       periode: { type: 'string', description: 'ex. 2023 ou 2025-T2 ; défaut : la plus récente' },
-      territoire_niveau: { type: 'string', enum: ['geo1', 'geo2', 'geo3'] }, territoire: { type: 'string' }, famille: { type: 'string' }, secteur: { type: 'string' } }, required: ['indicateur'] },
+      territoire_niveau: { type: 'string', enum: ['zone', 'geo1', 'geo2', 'geo3'], description: 'zone = France entière / Outre-mer / France hexagonale' }, territoire: { type: 'string' }, famille: { type: 'string' }, secteur: { type: 'string' } }, required: ['indicateur'] },
     run: (a) => iaCalculer(a) },
+  { name: 'indicateurs_avances', description: 'Indicateurs d’analyse économique et statistique sur les territoires ou les secteurs : indice de spécificité (quotient de localisation) de l’ESS par rapport à une zone de référence, concentration (Herfindahl-Hirschman) de l’emploi ESS entre secteurs, dispersion entre territoires (écart-type, coefficient de variation, écart interquartile), indice base 100 d’évolution. Calcul sur les tableaux chargés, secret statistique appliqué.',
+    schema: { type: 'object', properties: { indicateur: { type: 'string', enum: ['specificite_sectorielle', 'concentration_sectorielle', 'dispersion_territoires', 'indice_base_100'] }, periode: { type: 'string' }, territoire: { type: 'string', description: 'territoire analysé (geo1) ; pour spécificité et concentration' }, reference: { type: 'string', enum: ['France entière', 'Outre-mer', 'France hexagonale'], description: 'zone de référence (défaut France entière)' }, depuis: { type: 'string', description: 'période de base pour indice_base_100' } }, required: ['indicateur'] },
+    run: (a) => iaAvance(a) },
+  { name: 'tendance_et_regression', description: 'Économétrie descriptive : (1) tendance d’une série annuelle (régression linéaire MCO sur le temps, taux de croissance annuel moyen, R², pente avec intervalle de confiance à 95 %), (2) corrélation et régression simple entre deux indicateurs sur les territoires (coupe transversale). À manier avec les mises en garde d’usage : peu d’observations, pas de causalité.',
+    schema: { type: 'object', properties: { mode: { type: 'string', enum: ['tendance', 'coupe_transversale'] }, territoire: { type: 'string' }, secteur: { type: 'string' }, famille: { type: 'string' }, y: { type: 'string', enum: ['effectifs', 'etablissements', 'poids_emploi_prive', 'remuneration_moyenne', 'part_femmes'], description: 'variable expliquée (coupe transversale) ou série (tendance, défaut effectifs)' }, x: { type: 'string', enum: ['effectifs', 'etablissements', 'poids_emploi_prive', 'remuneration_moyenne', 'part_femmes', 'taille_moyenne'], description: 'variable explicative (coupe transversale)' }, periode: { type: 'string' } }, required: ['mode'] },
+    run: (a) => iaEconometrie(a) },
   { name: 'analyser_dynamiques', description: 'Analyse complète de l’évolution entre deux périodes : phases (croissance, chute, reprise), contributions des secteurs et familles, créations/fermetures d’établissements et effets de champ, effet de structure (shift-share), chronologie des chocs pertinents et pistes à vérifier.',
     schema: { type: 'object', properties: { de: { type: 'string' }, a: { type: 'string' }, territoire_niveau: { type: 'string', enum: ['geo1', 'geo2', 'geo3'] }, territoire: { type: 'string' } }, required: ['de', 'a'] },
     run: (a) => { needData(); const t0 = checkT(a.de); const t1 = checkT(a.a); return blocksToText(analyseDynamique(geoArg(a), t0, t1, { internal: IA.scope === 'tout', noTitle: true })); } },
@@ -23759,11 +23805,85 @@ const IA_TOOLS = [
     run: () => (currentDoc ? blocksToText(currentDoc.docs) : 'Aucune publication affichée.') },
 ];
 
+
+// Statistique de base (sans dépendance)
+const stMean = (v) => v.reduce((a, b) => a + b, 0) / v.length;
+const stSd = (v) => { if (v.length < 2) return 0; const m = stMean(v); return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / (v.length - 1)); };
+const stQ = (v, q) => { const a = v.slice().sort((x, y) => x - y); const i = (a.length - 1) * q; const lo = Math.floor(i); return a[lo] + (a[Math.min(lo + 1, a.length - 1)] - a[lo]) * (i - lo); };
+const TCRIT = [0, 12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.16, 2.145, 2.131, 2.12, 2.11, 2.101, 2.093, 2.086];
+const tCrit = (df) => (df < 1 ? NaN : df <= 20 ? TCRIT[df] : df <= 30 ? 2.05 : df <= 60 ? 2.0 : 1.96);
+function ols(x, y) {
+  const n = x.length; if (n < 3) return null; const mx = stMean(x); const my = stMean(y);
+  const sxx = x.reduce((a, b) => a + (b - mx) ** 2, 0); if (!sxx) return null; const sxy = x.reduce((a, b, i) => a + (b - mx) * (y[i] - my), 0);
+  const b = sxy / sxx; const a0 = my - b * mx; const res = y.map((v, i) => v - (a0 + b * x[i])); const sse = res.reduce((a, r) => a + r * r, 0); const sst = y.reduce((a, v) => a + (v - my) ** 2, 0);
+  const se = Math.sqrt(sse / (n - 2) / sxx); const tc = tCrit(n - 2);
+  return { n, pente: b, constante: a0, r2: sst ? 1 - sse / sst : null, ic95: [b - tc * se, b + tc * se], t: se ? b / se : null, corr: sst ? sxy / Math.sqrt(sxx * sst) : null };
+}
+const r3 = (x) => (x == null || !isFinite(x) ? null : Math.round(x * 1000) / 1000);
+function iaAvance(a) {
+  needData(); const t = checkT(a.periode); const ref = a.reference || 'France entière'; const out = { source: sourceLine(t), avertissements: [] };
+  const geo = (g) => ({ t, geoLevel: g.level, geoValue: g.value });
+  if (a.indicateur === 'dispersion_territoires') {
+    const terrs = geoValues('geo1'); const vals = [];
+    for (const g of terrs) { const c = cles(filt({ t, geoLevel: 'geo1', geoValue: g })); const sec = isSecret(c.ess); const v = c.hasPub ? c.poidsTot : c.poidsPriv; if (!sec && v != null) vals.push({ territoire: g, poids: v, salaries: c.ess.eff }); }
+    if (vals.length < 3) throw new Error('Moins de trois territoires disponibles.');
+    const v = vals.map((x) => x.poids); const m = stMean(v); const w = vals.reduce((aa, x) => aa + x.salaries, 0);
+    Object.assign(out, { indicateur: 'dispersion du poids de l’ESS dans l’emploi entre territoires', n: vals.length, moyenne_simple_pct: r3(m), moyenne_ponderee_par_emploi_pct: r3(vals.reduce((aa, x) => aa + x.poids * x.salaries, 0) / w), ecart_type_pts: r3(stSd(v)), coefficient_variation_pct: r3(stSd(v) / m * 100), mediane_pct: r3(stQ(v, 0.5)), ecart_interquartile_pts: r3(stQ(v, 0.75) - stQ(v, 0.25)), min: vals.reduce((x, y) => (y.poids < x.poids ? y : x)), max: vals.reduce((x, y) => (y.poids > x.poids ? y : x)) });
+    out.avertissements.push('Les territoires sont de tailles très inégales : la moyenne simple et la moyenne pondérée diffèrent ; comparer des taux, pas des effectifs.');
+    return JSON.stringify(out);
+  }
+  if (a.indicateur === 'indice_base_100') {
+    const t0 = a.depuis ? checkT(a.depuis) : state.times[0]; const g = a.territoire ? { level: 'geo1', value: a.territoire } : { level: '', value: '' };
+    const serie = state.times.filter((x) => x >= t0).map((x) => { const c = cles(filt({ t: x, geoLevel: g.level, geoValue: g.value })); return { periode: x, ess: c.ess.eff, prive: c.priv.eff, sec: isSecret(c.ess) }; });
+    const b = serie[0]; if (!b || !b.ess) throw new Error('Pas de base de calcul.');
+    out.indicateur = 'indice base 100 en ' + t0; out.territoire = a.territoire || 'ensemble'; out.serie = serie.map((x) => ({ periode: x.periode, ess_base100: x.sec ? 's' : r3(x.ess / b.ess * 100), prive_hors_ess_base100: b.prive ? r3(x.prive / b.prive * 100) : null }));
+    out.avertissements.push('Un indice base 100 dépend du choix de la période de base : choisir une année non atypique.');
+    return JSON.stringify(out);
+  }
+  const terr = a.territoire; const sel = filt(terr ? geo({ level: 'geo1', value: terr }) : { t }); const base = filt({ t, geoLevel: 'zone', geoValue: ref });
+  const bySec = (rr) => groupBy(rr.filter((r) => r.statut === 'ESS'), (r) => r.secteur); const gS = bySec(sel);
+  if (a.indicateur === 'concentration_sectorielle') {
+    const tot = agg(sel.filter((r) => r.statut === 'ESS')); const sh = [...gS.entries()].map(([k, x]) => ({ secteur: k, part: x.eff / tot.eff })).filter((x) => x.part > 0);
+    const hhi = sh.reduce((aa, x) => aa + x.part ** 2, 0) * 10000; const n = sh.length;
+    Object.assign(out, { indicateur: 'concentration sectorielle de l’emploi ESS (Herfindahl-Hirschman, 0 à 10 000)', territoire: terr || 'ensemble', hhi: Math.round(hhi), hhi_normalise_0_1: r3((hhi / 10000 - 1 / n) / (1 - 1 / n)), nb_secteurs: n, secteurs_dominants: sh.sort((x, y) => y.part - x.part).slice(0, 3).map((x) => ({ secteur: x.secteur, part_pct: r3(x.part * 100) })) });
+    out.avertissements.push('L’indice dépend de la finesse de la nomenclature sectorielle ; seuils usuels (marchés) 1 500 / 2 500 non transposables tels quels à l’emploi.');
+    return JSON.stringify(out);
+  }
+  const gR = bySec(base); const totT = agg(sel.filter((r) => r.statut === 'ESS')).eff; const totR = agg(base.filter((r) => r.statut === 'ESS')).eff;
+  const lines = [...gS.entries()].map(([k, x]) => { const r = gR.get(k); const lq = r && r.eff && totR && totT ? (x.eff / totT) / (r.eff / totR) : null; return { secteur: k, part_territoire_pct: r3(x.eff / totT * 100), part_reference_pct: r && totR ? r3(r.eff / totR * 100) : null, indice_specificite: r3(lq), secret: isSecret(x) }; }).filter((l) => !l.secret).sort((x, y) => (y.indice_specificite || 0) - (x.indice_specificite || 0));
+  Object.assign(out, { indicateur: 'indice de spécificité sectorielle de l’ESS (part du secteur dans l’emploi ESS du territoire ÷ part dans la zone de référence ; > 1 = sur-représentation)', territoire: terr || 'ensemble', reference: ref, lignes: lines });
+  out.avertissements.push('Un indice > 1 mesure une spécialisation relative, pas un avantage compétitif ; sensible aux petits effectifs.');
+  return JSON.stringify(out);
+}
+function iaEconometrie(a) {
+  needData(); const out = { avertissements: [] };
+  const val = (c, k) => ({ effectifs: c.ess.eff, etablissements: c.ess.etab, poids_emploi_prive: c.poidsPriv, remuneration_moyenne: c.ess.etp ? c.ess.ms / c.ess.etp : c.ess.eff ? c.ess.ms / c.ess.eff : null, part_femmes: c.ess.eff && state.map.femmes ? c.ess.fem / c.ess.eff * 100 : null, taille_moyenne: c.ess.etab ? c.ess.eff / c.ess.etab : null }[k]);
+  if (a.mode === 'tendance') {
+    const k = a.y || 'effectifs'; const g = a.territoire ? { geoLevel: 'geo1', geoValue: a.territoire } : {}; const pts = [];
+    for (const t of state.times) { if (!/^\d{4}$/.test(t)) continue; const c = cles(filt({ t, ...g, secteur: a.secteur || '', famille: a.famille || '' })); if (!c.ess.n || isSecret(c.ess)) continue; const v = val(c, k); if (v != null) pts.push([+t, v]); }
+    if (pts.length < 4) throw new Error('Il faut au moins 4 années exploitables (annuelles) pour estimer une tendance.');
+    const o = ols(pts.map((p) => p[0]), pts.map((p) => p[1])); const first = pts[0]; const last = pts.at(-1); const cagr = first[1] > 0 && last[1] > 0 ? (Math.pow(last[1] / first[1], 1 / (last[0] - first[0])) - 1) * 100 : null;
+    Object.assign(out, { mode: 'tendance linéaire (MCO)', variable: k, territoire: a.territoire || 'ensemble', periode: `${first[0]}-${last[0]}`, n: o.n, pente_par_an: r3(o.pente), ic95_pente: o.ic95.map(r3), r2: r3(o.r2), taux_croissance_annuel_moyen_pct: r3(cagr), significative_95pct: o.ic95[0] * o.ic95[1] > 0, serie: pts.map((p) => ({ annee: p[0], valeur: r3(p[1]) })) });
+    out.avertissements.push('Tendance descriptive sur une série courte et autocorrélée : l’intervalle de confiance est indicatif (hypothèse d’erreurs indépendantes non vérifiée) ; ne pas extrapoler au-delà de quelques années ; les ruptures de série (changement de source ou de périmètre) biaisent la pente.');
+    return JSON.stringify(out);
+  }
+  const t = checkT(a.periode); const kx = a.x || 'taille_moyenne'; const ky = a.y || 'poids_emploi_prive'; const pts = [];
+  for (const g of geoValues('geo1')) { const c = cles(filt({ t, geoLevel: 'geo1', geoValue: g, secteur: a.secteur || '' })); if (!c.ess.n || isSecret(c.ess)) continue; const x = val(c, kx); const y = val(c, ky); if (x != null && y != null) pts.push({ g, x, y }); }
+  if (pts.length < 5) throw new Error('Moins de cinq territoires exploitables : une régression n’a pas de sens.');
+  const o = ols(pts.map((p) => p.x), pts.map((p) => p.y));
+  Object.assign(out, { mode: 'coupe transversale (MCO simple)', periode: t, y: ky, x: kx, n_territoires: o.n, pente: r3(o.pente), constante: r3(o.constante), ic95_pente: o.ic95.map(r3), correlation_pearson: r3(o.corr), r2: r3(o.r2), significative_95pct: o.ic95[0] * o.ic95[1] > 0, points: pts.map((p) => ({ territoire: p.g, x: r3(p.x), y: r3(p.y) })) });
+  out.avertissements.push('Coupe transversale sur un petit nombre de territoires hétérogènes : corrélation écologique, hétéroscédasticité probable, variables omises (structure sectorielle, démographie, politiques locales) : la relation décrite n’est pas causale. Les données Flores étant exhaustives (recensement administratif), il n’y a pas d’erreur d’échantillonnage : l’incertitude vient de la spécification, des secrets statistiques et des ruptures de séries.');
+  return JSON.stringify(out);
+}
 function iaCalculer(a) {
   needData();
   const t = checkT(a.periode); const dim = a.ventilation && a.ventilation !== 'aucune' ? a.ventilation : ''; const champ = a.champ && a.champ !== 'Tous' ? a.champ : a.champ === 'Tous' ? '' : 'ESS';
   const f = { ...geoArg(a), t, famille: a.famille || '', secteur: a.secteur || '' };
-  const all = filt(dim === 'temps' ? { ...f, t: '' } : f); const pick = (rr) => (champ ? rr.filter((r) => r.statut === champ) : rr);
+  const needAll = champ !== 'ESS' || ['poids_emploi', 'poids_emploi_prive'].includes(a.indicateur);
+  const tab = srcFor([dim, f.geoLevel], { needAll, t });
+  if (!tab && [dim, f.geoLevel].some((d) => d && !baseHas(d))) throw new Error(`Aucun tableau chargé ne porte la ventilation « ${dim} » (ou le niveau « ${f.geoLevel} ») ${needAll ? 'avec le privé hors ESS et le public ' : ''}: ventilations disponibles = ${dimsAvailable().join(', ')}.`);
+  if (tab && tab.autTotal && a.indicateur === 'poids_emploi_prive') throw new Error('Ce tableau ne sépare pas privé et public : demander poids_emploi (poids dans l’emploi total).');
+  const all = filt(dim === 'temps' ? { ...f, t: '' } : f, tab); const ignF = filt.ign.slice(); const pick = (rr) => (champ ? rr.filter((r) => r.statut === champ) : rr);
   const sel = pick(all); const keyFn = dim ? (r) => dimVal(r, dim) : () => 'Total';
   const g = groupBy(sel, keyFn); const gAll = groupBy(all, keyFn); const gPriv = groupBy(all.filter((r) => r.statut !== 'Public'), keyFn);
   const prev = prevYear(t); const gPrev = prev && state.times.includes(prev) && dim !== 'temps' ? groupBy(pick(filt({ ...f, t: prev })), keyFn) : new Map();
@@ -23771,13 +23891,13 @@ function iaCalculer(a) {
   const lines = [...g.entries()].map(([k, x]) => {
     const base = dim === 'famille' || !dim ? totAll : gAll.get(k); const bp = dim === 'famille' || !dim ? totPriv : gPriv.get(k); const p = gPrev.get(k); const sec = isSecret(x);
     const o = { [dim || 'champ']: k, etablissements: x.etab, effectifs: x.eff, poids_emploi_pct: pct(x.eff, base?.eff), poids_emploi_prive_pct: pct(x.eff, bp?.eff), part_du_champ_pct: pct(x.eff, tot.eff),
-      etp: x.etp || undefined, masse_salariale: x.ms || undefined, remuneration_moyenne: x.etp ? x.ms / x.etp : x.eff ? x.ms / x.eff : undefined, part_femmes_pct: state.map.femmes ? pct(x.fem, x.eff) : undefined, part_cdi_pct: state.map.cdi ? pct(x.cdi, x.eff) : undefined,
+      etp: x.etp || undefined, masse_salariale: x.ms || undefined, remuneration_moyenne: x.ms ? (x.etp ? x.ms / x.etp : x.eff ? x.ms / x.eff : undefined) : undefined, part_femmes_pct: state.map.femmes ? pct(x.fem, x.eff) : undefined, part_cdi_pct: state.map.cdi ? pct(x.cdi, x.eff) : undefined,
       evolution_1an_pct: p ? pct(x.eff - p.eff, p.eff) : undefined, solde_1an: p ? x.eff - p.eff : undefined };
     for (const kk of Object.keys(o)) if (typeof o[kk] === 'number') o[kk] = Math.round(o[kk] * 10) / 10;
     if (sec && IA.scope !== 'tout') { for (const kk of Object.keys(o)) if (kk !== (dim || 'champ')) o[kk] = S.secretLabel || 's'; } else if (sec) o.sous_secret = true;
     return o;
   });
-  return JSON.stringify({ periode: dim === 'temps' ? 'toutes' : t, champ: champ || 'Tous statuts', territoire: terrName(f), filtres: { famille: a.famille, secteur: a.secteur }, source: sourceLine(t), secret: IA.scope === 'tout' ? 'Les lignes marquées sous_secret=true sont confidentielles : ne pas publier leurs valeurs (afficher « ' + (S.secretLabel || 's') + ' »).' : `« ${S.secretLabel || 's'} » = secret statistique`, lignes: lines, total: dim ? { etablissements: tot.etab, effectifs: tot.eff } : undefined });
+  return JSON.stringify({ tableau_source: tab ? tab.name.split('/').pop() : 'tableau de base', filtres_ignores_car_absents_du_tableau: ignF.length ? ignF : undefined, periode: dim === 'temps' ? 'toutes' : t, champ: champ || 'Tous statuts', territoire: terrName(f), filtres: { famille: a.famille, secteur: a.secteur }, source: sourceLine(t), secret: IA.scope === 'tout' ? 'Les lignes marquées sous_secret=true sont confidentielles : ne pas publier leurs valeurs (afficher « ' + (S.secretLabel || 's') + ' »).' : `« ${S.secretLabel || 's'} » = secret statistique`, lignes: lines, total: dim ? { etablissements: tot.etab, effectifs: tot.eff } : undefined });
 }
 function iaEtablissements(a) {
   needData();
@@ -24268,8 +24388,8 @@ function syncRender() {
   const rows = SYNC_FILES.map((f, i) => `<tr><td style="text-align:left"><strong>${esc(f.path)}</strong>${last && last.path === f.path ? (last.mtime < f.mtime ? ' <span class="badge" style="background:var(--warn-bg);color:var(--warn)">version plus récente</span>' : ' <span class="badge ok">chargée</span>') : ''}</td><td>${fmtDate(f.mtime)}</td><td>${fmtSize(f.size)}</td><td style="text-align:right"><button class="b primary" data-sy="${i}">Charger</button></td></tr>`).join('');
   box.innerHTML = `<p class="muted" style="margin:6px 0">Dossier : <strong>${esc(SYNC_DIR.name)}</strong> · ${SYNC_FILES.length} base(s) trouvée(s) (CSV, Excel), les plus récentes en premier.</p>${SYNC_FILES.length ? `<div class="tw" style="max-height:300px"><table class="t"><thead><tr><th>Fichier</th><th>Modifié le</th><th>Taille</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="msg warn">Aucun fichier CSV ou Excel trouvé dans ce dossier.</div>'}`;
   box.querySelectorAll('[data-sy]').forEach((b) => { b.onclick = () => syncLoad(SYNC_FILES[+b.dataset.sy]); });
-  const grp = new Map(); for (const f of SYNC_FILES) { const p = f.path.split('/'); if (p.length >= 3 && !/^param/i.test(f.path) && /\.xlsx?$/i.test(f.path)) { const k = p.slice(0, 2).join('/'); if (!grp.has(k)) grp.set(k, []); grp.get(k).push(f); } }
-  if (grp.size) { const gd = document.createElement('div'); gd.style.margin = '10px 0'; gd.innerHTML = '<p class="muted" style="margin:0 0 6px">Charger tous les tableaux d’un millésime en une fois :</p>' + [...grp].map(([k, v], i) => `<button class="b primary" data-grp="${i}" style="margin:0 8px 6px 0">${esc(k)} (${v.length} fichiers)</button>`).join(''); box.appendChild(gd); gd.querySelectorAll('[data-grp]').forEach((b) => { b.onclick = () => syncLoadGroup([...grp][+b.dataset.grp]); }); }
+  const grp = new Map(); for (const f of SYNC_FILES) { const p = f.path.split('/'); if (p.length >= 3 && !/^param/i.test(f.path) && /\.xlsx?$/i.test(f.path)) { const k = p[0]; if (!grp.has(k)) grp.set(k, []); grp.get(k).push(f); } }
+  if (grp.size) { const gd = document.createElement('div'); gd.style.margin = '10px 0'; gd.innerHTML = '<p class="muted" style="margin:0 0 6px">Charger toutes les données d’une source, tous millésimes confondus :</p>' + [...grp].map(([k, v], i) => `<button class="b primary" data-grp="${i}" style="margin:0 8px 6px 0">${esc(k)} (${v.length} fichiers · ${new Set(v.map((x) => x.path.split('/')[1]).filter((y) => /^(19|20)\d\d$/.test(y))).size} millésime(s))</button>`).join(''); box.appendChild(gd); gd.querySelectorAll('[data-grp]').forEach((b) => { b.onclick = () => syncLoadGroup([...grp][+b.dataset.grp]); }); }
   $('syLast').classList.toggle('hide', !last);
   if (last) $('syLast').textContent = `Recharger la dernière base (${last.path})`;
 }
@@ -24284,10 +24404,10 @@ async function syncLoad(f) {
 async function syncLoadGroup([k, files]) {
   try {
     if (!SYNC_ONLINE && !(await syncPerm(SYNC_DIR, false))) throw new Error('autorisation refusée');
-    $('syMsg').innerHTML = `<span class="muted">Lecture de ${files.length} fichiers (${esc(k)})…</span>`;
-    const refs = SYNC_FILES.filter((x) => /^param/i.test(x.path) && /\.xlsx?$/i.test(x.path)); const items = []; for (const f of [...files, ...refs]) items.push({ name: f.path.split('/').pop(), path: f.path, file: await f.h.getFile() });
-    const y = (k.split('/')[1] || '').match(/^(19|20)\d\d$/); await loadTables(items, { year: y ? y[0] : '' });
-    $('syMsg').innerHTML = `<span class="badge ok">${esc(k)} : ${files.length} fichiers lus. Voir « Tableaux chargés » plus bas.</span>`;
+    const refs = SYNC_FILES.filter((x) => /^param/i.test(x.path) && /\.xlsx?$/i.test(x.path));
+    const items = [...files, ...refs].map((f) => ({ name: f.path.split('/').pop(), path: f.path, mtime: f.mtime, size: f.size, getFile: () => f.h.getFile() }));
+    await loadTables(items, { label: k });
+    $('syMsg').innerHTML = `<span class="badge ok">${esc(k)} : ${files.length} fichiers. Voir « Tableaux chargés » plus bas.</span>`;
   } catch (e) { err(e); }
 }
 async function syncConnect(h) {
