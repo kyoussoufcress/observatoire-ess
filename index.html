@@ -24127,7 +24127,9 @@ async function gfetch(path, opt = {}, write = false) {
 async function onResolve() {
   if (ON.cfg.urlDossier) { // adresse du dossier telle qu'affichée dans le navigateur (sans lien de partage)
     const u = new URL(ON.cfg.urlDossier); const path = decodeURIComponent(u.searchParams.get('id') || u.pathname);
-    const m = path.match(/^(\/(?:sites|teams)\/[^/]+)(\/.*)?$/i); if (!m) throw new Error('Adresse du dossier non reconnue (urlDossier).');
+    const seg = path.split('/').filter(Boolean); if (!seg.length) throw new Error('Adresse du dossier non reconnue (urlDossier).');
+    const nsite = /^(sites|teams)$/i.test(seg[0]) ? 2 : 1; // /sites/xxx, /teams/xxx ou site à la racine /xxx
+    const m = [null, '/' + seg.slice(0, nsite).join('/'), '/' + seg.slice(nsite).join('/')]; if (seg.length <= nsite) m[2] = '';
     const site = await (await gfetch(`/sites/${u.hostname}:${m[1]}?$select=id`)).json();
     const drives = (await (await gfetch(`/sites/${site.id}/drives?$select=id,name,webUrl`)).json()).value;
     const full = u.origin + m[1] + (m[2] || '');
