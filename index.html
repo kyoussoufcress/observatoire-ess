@@ -24114,9 +24114,9 @@ const b64u = (s) => btoa(unescape(encodeURIComponent(s))).replace(/\+/g, '-').re
 const msLib = () => window.__MSAL_MOCK || window.msal;
 
 async function onToken(write) {
-  const scopes = write ? ['Files.ReadWrite.All'] : ['Files.Read.All'];
+  const scopes = write ? ['Files.ReadWrite.All', 'Sites.Read.All'] : ['Files.Read.All', 'Sites.Read.All'];
   const req = { scopes, account: ON.acct };
-  try { return (await ON.app.acquireTokenSilent(req)).accessToken; } catch { return (await ON.app.acquireTokenPopup(req)).accessToken; }
+  try { return (await ON.app.acquireTokenSilent(req)).accessToken; } catch { await ON.app.acquireTokenRedirect(req); return new Promise(() => {}); }
 }
 async function gfetch(path, opt = {}, write = false) {
   const tok = await onToken(write); const url = path.startsWith('http') ? path : GRAPH + path;
@@ -24125,6 +24125,19 @@ async function gfetch(path, opt = {}, write = false) {
   return r;
 }
 async function onResolve() {
+  if (ON.cfg.urlDossier) { // adresse du dossier telle qu'affichée dans le navigateur (sans lien de partage)
+    const u = new URL(ON.cfg.urlDossier); const path = decodeURIComponent(u.searchParams.get('id') || u.pathname);
+    const m = path.match(/^(\/(?:sites|teams)\/[^/]+)(\/.*)?$/i); if (!m) throw new Error('Adresse du dossier non reconnue (urlDossier).');
+    const site = await (await gfetch(`/sites/${u.hostname}:${m[1]}?$select=id`)).json();
+    const drives = (await (await gfetch(`/sites/${site.id}/drives?$select=id,name,webUrl`)).json()).value;
+    const full = u.origin + m[1] + (m[2] || '');
+    const d = drives.map((x) => ({ x, w: decodeURIComponent(x.webUrl) })).filter((o) => full.toLowerCase().startsWith(o.w.toLowerCase())).sort((a, b) => b.w.length - a.w.length)[0];
+    if (!d) throw new Error('Bibliothèque de documents introuvable pour cette adresse.');
+    const folder = full.slice(d.w.length).replace(/^\/+|\/+$/g, '');
+    ON.drive = d.x.id;
+    ON.root = folder ? (await (await gfetch(`/drives/${ON.drive}/root:/${encodeURI(folder)}?$select=id`)).json()).id : (await (await gfetch(`/drives/${ON.drive}/root?$select=id`)).json()).id;
+    return;
+  }
   const id = 'u!' + b64u(ON.cfg.lienDossier);
   const it = await (await gfetch(`/shares/${id}/driveItem?$select=id,name,parentReference`, { headers: { Prefer: 'redeemSharingLink' } })).json();
   ON.drive = it.parentReference.driveId; ON.root = it.id;
@@ -24161,7 +24174,7 @@ async function onStartExpert() {
 async function onBoot() {
   if (!/^https?:$/.test(location.protocol)) return;
   let cfg; try { const r = await fetch('config.json', { cache: 'no-store' }); if (!r.ok) return; cfg = await r.json(); } catch { return; }
-  if (!cfg.clientId || !cfg.tenant || !cfg.lienDossier) return;
+  if (!cfg.clientId || !cfg.tenant || !(cfg.lienDossier || cfg.urlDossier)) return;
   ON.cfg = Object.assign({ dossierBases: 'Bases', dossierConsultation: 'Consultation' }, cfg); ON.active = true;
   const gate = $('gate'); gate.classList.remove('hide'); $('gateMsg').textContent = '';
   const M = msLib(); ON.app = new M.PublicClientApplication({ auth: { clientId: cfg.clientId, authority: `https://login.microsoftonline.com/${cfg.tenant}`, redirectUri: location.origin + location.pathname }, cache: { cacheLocation: 'localStorage' } });
@@ -24169,7 +24182,8 @@ async function onBoot() {
   const go = async () => {
     $('gateBtn').disabled = true; $('gateMsg').innerHTML = '<p class="muted">Connexion en cours…</p>';
     try {
-      ON.acct = ON.app.getAllAccounts()[0]; if (!ON.acct) ON.acct = (await ON.app.loginPopup({ scopes: ['Files.Read.All'] })).account;
+      ON.acct = ON.app.getAllAccounts()[0];
+      if (!ON.acct) { await ON.app.loginRedirect({ scopes: ['Files.Read.All', 'Sites.Read.All'] }); ON.acct = ON.app.getAllAccounts()[0]; if (!ON.acct) return; } // connexion dans la même fenêtre (évite le blocage des fenêtres surgissantes)
       await onResolve();
       try { await onChildren(ON.cfg.dossierBases); ON.expert = true; } catch (e) { if (e.status !== 403 && e.status !== 404) throw e; ON.expert = false; }
       if (ON.expert) await onStartExpert(); else await onStartConsult();
