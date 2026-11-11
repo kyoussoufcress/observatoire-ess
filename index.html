@@ -21738,7 +21738,7 @@ const NICE_GEO = { territoire: 'Territoire', region: 'Territoire', departement: 
 const geoName = (k, d) => (state.map[k] ? NICE_GEO[normKey(state.map[k])] || ucfirst(state.map[k]) : d);
 const GEO_LABEL = () => ({ geo1: geoName('geo1', 'Territoire 1'), geo2: state.map.geo2 || !state.tables.some((t) => t.dims.includes('geo2')) ? geoName('geo2', 'Territoire 2') : 'Département', geo3: state.map.geo3 || !state.tables.some((t) => t.dims.includes('geo3')) ? geoName('geo3', 'Territoire 3') : 'Intercommunalité (EPCI)' });
 
-const state = { tables: [], raw: null, cols: [], map: {}, rows: [], times: [], timeType: 'annee', aggregated: false, fileName: '', wb: null, lastTables: [] };
+const state = { geoRef: null, tables: [], raw: null, cols: [], map: {}, rows: [], times: [], timeType: 'annee', aggregated: false, fileName: '', wb: null, lastTables: [] };
 
 function autoMap(cols) {
   const m = {}; const used = new Set(); const nk = cols.map(normKey);
@@ -21890,7 +21890,26 @@ const OM_SET = new Set(['Guadeloupe', 'Martinique', 'Guyane', 'La Réunion', 'Ma
 const ZONES = ['France entière', 'Outre-mer', 'France hexagonale'];
 const zoneMatch = (r, z) => (z === 'France entière' ? true : z === 'Outre-mer' ? OM_SET.has(r.geo1) : z === 'France hexagonale' ? !!r.geo1 && !OM_SET.has(r.geo1) : false);
 const DEP_REG = (() => { const R = { 'Auvergne-Rhône-Alpes': '01 03 07 15 26 38 42 43 63 69 73 74', 'Bourgogne-Franche-Comté': '21 25 39 58 70 71 89 90', Bretagne: '22 29 35 56', 'Centre-Val de Loire': '18 28 36 37 41 45', Corse: '2A 2B 20', 'Grand Est': '08 10 51 52 54 55 57 67 68 88', 'Hauts-de-France': '02 59 60 62 80', 'Île-de-France': '75 77 78 91 92 93 94 95', Normandie: '14 27 50 61 76', 'Nouvelle-Aquitaine': '16 17 19 23 24 33 40 47 64 79 86 87', Occitanie: '09 11 12 30 31 32 34 46 48 65 66 81 82', 'Pays de la Loire': '44 49 53 72 85', "Provence-Alpes-Côte d'Azur": '04 05 06 13 83 84', Guadeloupe: '971', Martinique: '972', Guyane: '973', 'La Réunion': '974', Mayotte: '976' }; const m = {}; for (const [r, l] of Object.entries(R)) for (const d of l.split(' ')) m[d] = r; return m; })();
-const epciGeo1 = (code, name) => { const c = String(code); const n = String(name || '');
+const REG_NOM = { '01': 'Guadeloupe', '02': 'Martinique', '03': 'Guyane', '04': 'La Réunion', '06': 'Mayotte', '11': 'Île-de-France', '24': 'Centre-Val de Loire', '27': 'Bourgogne-Franche-Comté', '28': 'Normandie', '32': 'Hauts-de-France', '44': 'Grand Est', '52': 'Pays de la Loire', '53': 'Bretagne', '75': 'Nouvelle-Aquitaine', '76': 'Occitanie', '84': 'Auvergne-Rhône-Alpes', '93': "Provence-Alpes-Côte d'Azur", '94': 'Corse' };
+/** Référentiel géographique (ex. « Table d'appartenance géographique des communes » de l'INSEE) : code EPCI -> libellé, département, région. */
+function geoRefFromWb(wb) {
+  for (const n of wb.SheetNames) {
+    const top = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, range: 0, defval: '', blankrows: true }).slice(0, 30);
+    const hi = top.findIndex((r) => { const k = r.map((c) => normKey(c)); return k.some((c) => ['epci', 'codepci', 'code_epci', 'siren_epci', 'epci_siren'].includes(c)) && k.some((c) => ['reg', 'code_reg', 'codereg', 'dep', 'code_dep', 'coddep'].includes(c)); });
+    if (hi < 0) continue;
+    const data = XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: '', raw: true, range: hi }); if (!data.length) continue;
+    const col = (names) => Object.keys(data[0]).find((c) => names.includes(normKey(c)));
+    const cE = col(['epci', 'codepci', 'code_epci', 'siren_epci', 'epci_siren']); const cL = col(['libepci', 'lib_epci', 'nom_epci', 'libelle_epci', 'nomepci']); const cR = col(['reg', 'code_reg', 'codereg']); const cD = col(['dep', 'code_dep', 'coddep']);
+    const acc = new Map();
+    for (const r of data) { const e = String(r[cE] ?? '').trim().replace(/\.0$/, ''); if (!/^\d{9}$/.test(e)) continue; const o = acc.get(e) || { lib: '', reg: {}, dep: {} }; if (cL && r[cL]) o.lib = String(r[cL]).trim(); if (cR) { const v = String(r[cR]).trim().padStart(2, '0'); o.reg[v] = (o.reg[v] || 0) + 1; } if (cD) { const v = String(r[cD]).trim(); o.dep[v] = (o.dep[v] || 0) + 1; } acc.set(e, o); }
+    if (!acc.size) continue;
+    const top1 = (m) => Object.entries(m).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+    const out = new Map(); for (const [e, o] of acc) { const rc = top1(o.reg); const dc = top1(o.dep); out.set(e, { lib: o.lib, regCode: rc, reg: REG_NOM[rc] || (dc && DEP_REG[dc]) || '', dep: dc }); }
+    return out;
+  }
+  return null;
+}
+const epciGeo1 = (code, name) => { const gr = state.geoRef && state.geoRef.get(String(code)); if (gr && gr.reg) return gr.reg; const c = String(code); const n = String(name || '');
   if (/^2497[1-9]/.test(c) || /^2400?97/.test(c)) { const m = { 1: 'Guadeloupe', 2: 'Martinique', 3: 'Guyane', 4: 'La Réunion', 6: 'Mayotte' }[c[4]]; if (m) return m; }
   if (/Savanes|Ouest Guyanais|Est Guyanais|Centre Littoral|Maroni|Guyane/i.test(n)) return 'Guyane';
   if (/Marie-Galante|Cap Excellence|Nord Basse-Terre|Riviera du Levant|Grand Sud Cara[ïi]be|Nord Grande-Terre|Guadeloupe/i.test(n)) return 'Guadeloupe';
@@ -21919,7 +21938,7 @@ function inseeTable(cols, data, ctx = {}, level = 'reg') {
   const cand = []; let aut = false;
   for (const r of data) {
     let reg; let dep = ''; let epci = '';
-    if (level === 'epci') { epci = g(r, 'epci'); if (!epci || isTot(epci)) continue; reg = epciGeo1(epci, r[lc.lib_epci]) || '-'; }
+    if (level === 'epci') { epci = g(r, 'epci'); if (!epci || isTot(epci)) continue; reg = epciGeo1(epci, r[lc.lib_epci] || (state.geoRef && state.geoRef.get(epci) && state.geoRef.get(epci).lib)) || '-'; }
     else if (level === 'dep') { dep = g(r, 'dep'); if (!dep || isTot(dep) || /^total$/i.test(dep)) continue; reg = has('reg') ? g(r, 'reg') : (DEP_REG[dep] || ''); if (!reg || isTot(reg)) continue; }
     else { if (geoDep && !isTot(g(r, 'dep'))) continue; reg = g(r, 'reg'); if (!reg || isTot(reg)) continue; }
     let totSec = false; if (typ) { const t = g(r, typ); const d = g(r, typ + '_d'); if (isTot(t)) totSec = true; else if (hasD && d !== t && !(isTot(d) && !hasCode.has(okey(r)))) continue; }
@@ -21928,7 +21947,7 @@ function inseeTable(cols, data, ctx = {}, level = 'reg') {
     let totFam = false;
     if (has('nomjur1')) { const c = nj.slice(0, 2); if (NJ_FAM[c]) { famille = NJ_FAM[c]; statut = 'ESS'; } else if (c === '06') statut = 'Public'; else if (c === '07') statut = 'Privé hors ESS'; else if (isTot(nj) && /^(ess|aut)$/i.test(es)) { totFam = true; famille = 'Total'; statut = /^ess$/i.test(es) ? 'ESS' : 'Privé hors ESS'; } else continue; }
     else if (has('ess') && !has('ess_pub_pri')) { if (isTot(es)) continue; statut = es === 'ESS' ? 'ESS' : 'Privé hors ESS'; if (statut !== 'ESS') aut = true; }
-    const o = { t: ctx.year || '', famille, statut, secteur: typ && !totSec ? secFmt(String(r[lc['lib_' + typ]] || g(r, typ)).trim()) : 'Ensemble', _cls: statut === 'ESS' ? 'ESS' : 'HORS', geo1: level === 'epci' ? (reg === '-' ? '' : reg) : has('reg') ? terrNameOf(String(r[lc.lib_reg] || reg).trim()) : reg, geo2: dep ? terrNameOf(String(r[lc.lib_dep] || dep).trim()) : '', geo3: epci ? String(r[lc.lib_epci] || epci).trim() : '', cj: '', ape: '', id: '', nom: '', creation: null, ferme: false, flag: false, fem: 0, cdi: 0, taille: null, w: 0, eff: 0, etp: 0, ms: 0, _s: {}, _tot: { secteur: totSec, famille: totFam } };
+    const o = { t: ctx.year || '', famille, statut, secteur: typ && !totSec ? secFmt(String(r[lc['lib_' + typ]] || g(r, typ)).trim()) : 'Ensemble', _cls: statut === 'ESS' ? 'ESS' : 'HORS', geo1: level === 'epci' ? (reg === '-' ? '' : reg) : has('reg') ? terrNameOf(String(r[lc.lib_reg] || reg).trim()) : reg, geo2: dep ? terrNameOf(String(r[lc.lib_dep] || dep).trim()) : '', geo3: epci ? String(r[lc.lib_epci] || (state.geoRef && state.geoRef.get(epci) && state.geoRef.get(epci).lib) || epci).trim() : '', cj: '', ape: '', id: '', nom: '', creation: null, ferme: false, flag: false, fem: 0, cdi: 0, taille: null, w: 0, eff: 0, etp: 0, ms: 0, _s: {}, _tot: { secteur: totSec, famille: totFam } };
     split.forEach((k, i) => { const tot = isTot(g(r, k)); o[sd[i]] = tot ? 'Total' : String(r[lc['lib_' + k]] || g(r, k)).trim(); o._tot[sd[i]] = tot; });
     for (const [k, f] of IND) { const sc = lc['secret_' + k]; const sec = sc !== undefined && /^s$/i.test(String(r[sc]).trim()); o[f] = sec ? 0 : num(r[lc[k]]); if (sec) o._s[f] = true; }
     o.ms *= 1e6; cand.push(o);
@@ -21955,19 +21974,25 @@ function srcFor(dims, { needAll = false } = {}) {
   c.sort((a, b) => ([...b.secteurs].filter((x) => bs.has(x)).length / b.secteurs.size) - ([...a.secteurs].filter((x) => bs.has(x)).length / a.secteurs.size) || (b.nonESS - a.nonESS));
   return c[0] || null;
 }
-function renderTablesPanel(ign = []) {
+function renderTablesPanel(ign = [], refMsg = '') {
   const el = $('tabList'); if (!el) return;
   if (!state.tables.length && !ign.length && !state.rows.length) { el.innerHTML = ''; return; }
   const L = (x) => (x ? '' : '');
   const rows = [state.rows.length ? `<tr><td style="text-align:left"><strong>${esc(state.fileName)}</strong></td><td style="text-align:left">Tableau de base : territoire × famille × secteur</td><td>${fInt(state.rows.length)}</td></tr>` : '',
     ...state.tables.map((t) => `<tr><td style="text-align:left">${esc(t.name)}</td><td style="text-align:left">${esc(t.dims.filter((d) => d !== 'temps').map((d) => ({ geo1: 'territoire', secteur: 'secteur (typologie ' + t.typ + ')', famille: 'famille', statut: 'statut' }[d] || (EX_LAB[d] || d).toLowerCase())).join(' × '))}${t.nonESS ? '' : ' (ESS seul)'}</td><td>${fInt(t.rows.length)}</td></tr>`),
+    ...(refMsg ? [`<tr><td style="text-align:left" colspan="3">Référentiel géographique — ${esc(refMsg)}</td></tr>`] : (state.tables.some((t) => t.level === 'epci') && !state.geoRef ? ['<tr><td style="text-align:left;color:var(--warn)" colspan="3">Référentiel géographique absent : les intercommunalités d’Outre-mer sont rattachées par leur nom (approximatif) et celles de l’Hexagone ne le sont pas. Déposez le fichier de composition des EPCI de l’INSEE dans le dossier Paramètres.</td></tr>'] : [])),
     ...ign.map(([n, why]) => `<tr><td style="text-align:left;color:var(--muted)">${esc(n)}</td><td style="text-align:left;color:var(--muted)" colspan="2">non intégré : ${esc(why)}</td></tr>`)].join('');
   el.innerHTML = `<div class="card" style="margin-top:12px"><h3>Tableaux chargés (${(state.rows.length ? 1 : 0) + state.tables.length})</h3><p class="muted" style="margin-top:0">Chaque tableau apporte un croisement. Pour chaque analyse, l’outil utilise le tableau qui porte la ventilation demandée, sans jamais additionner deux tableaux entre eux.</p><div class="tw"><table class="t"><thead><tr><th>Fichier</th><th>Croisement</th><th>Lignes</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 async function loadTables(items, ctx = {}) {
   const msg = $('loadMsg'); msg.innerHTML = `<div class="msg">Lecture de ${items.length} tableaux…</div>`;
-  const bases = []; const extra = []; const ign = [];
+  const bases = []; const extra = []; const ign = []; let refMsg = '';
+  for (const it of items) { // référentiel géographique (Paramètres) : lu en premier
+    if (!/\.(xlsx|xls|xlsm)$/i.test(it.name) || /^Tableau_FLORES/i.test(it.name) || !/geo|epci|appart|compos|commune|referentiel|zonage/i.test(it.path || it.name)) continue;
+    try { const gr = geoRefFromWb(XLSX.read(await it.file.arrayBuffer(), { type: 'array' })); if (gr) { state.geoRef = gr; it.__ref = true; refMsg = `${it.name} : ${fInt(gr.size)} intercommunalités rattachées à leur région`; } } catch { /* fichier ignoré */ }
+  }
   for (const it of items) {
+    if (it.__ref) continue;
     try {
       if (!/\.(xlsx|xls|xlsm)$/i.test(it.name)) { ign.push([it.name, 'format non INSEE']); continue; }
       const wb = XLSX.read(await it.file.arrayBuffer(), { type: 'array' }); let sd = null;
@@ -21986,7 +22011,7 @@ async function loadTables(items, ctx = {}) {
   for (const o of bases) if (o !== b) { ign.push([o.it.name, 'doublon du tableau de base']); }
   if (b.year && $('millesime')) $('millesime').value = b.year;
   state.fileName = b.it.path || b.it.name; state.wb = null; $('sheetRow').hidden = true;
-  state.tables = extra; setRaw(b.sd.cols, b.sd.data); applyMapping(); renderTablesPanel(ign);
+  state.tables = extra; setRaw(b.sd.cols, b.sd.data); applyMapping(); renderTablesPanel(ign, refMsg);
   msg.innerHTML += `<div class="msg ok">${items.length} fichiers lus : 1 tableau de base et ${extra.length} tableau(x) croisé(s) complémentaire(s)${ign.length ? `, ${ign.length} non intégré(s) (voir ci-dessous)` : ''}.</div>`;
 }
 function setRaw(cols, data) {
@@ -24243,7 +24268,7 @@ function syncRender() {
   const rows = SYNC_FILES.map((f, i) => `<tr><td style="text-align:left"><strong>${esc(f.path)}</strong>${last && last.path === f.path ? (last.mtime < f.mtime ? ' <span class="badge" style="background:var(--warn-bg);color:var(--warn)">version plus récente</span>' : ' <span class="badge ok">chargée</span>') : ''}</td><td>${fmtDate(f.mtime)}</td><td>${fmtSize(f.size)}</td><td style="text-align:right"><button class="b primary" data-sy="${i}">Charger</button></td></tr>`).join('');
   box.innerHTML = `<p class="muted" style="margin:6px 0">Dossier : <strong>${esc(SYNC_DIR.name)}</strong> · ${SYNC_FILES.length} base(s) trouvée(s) (CSV, Excel), les plus récentes en premier.</p>${SYNC_FILES.length ? `<div class="tw" style="max-height:300px"><table class="t"><thead><tr><th>Fichier</th><th>Modifié le</th><th>Taille</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="msg warn">Aucun fichier CSV ou Excel trouvé dans ce dossier.</div>'}`;
   box.querySelectorAll('[data-sy]').forEach((b) => { b.onclick = () => syncLoad(SYNC_FILES[+b.dataset.sy]); });
-  const grp = new Map(); for (const f of SYNC_FILES) { const p = f.path.split('/'); if (p.length >= 3 && /\.xlsx?$/i.test(f.path)) { const k = p.slice(0, 2).join('/'); if (!grp.has(k)) grp.set(k, []); grp.get(k).push(f); } }
+  const grp = new Map(); for (const f of SYNC_FILES) { const p = f.path.split('/'); if (p.length >= 3 && !/^param/i.test(f.path) && /\.xlsx?$/i.test(f.path)) { const k = p.slice(0, 2).join('/'); if (!grp.has(k)) grp.set(k, []); grp.get(k).push(f); } }
   if (grp.size) { const gd = document.createElement('div'); gd.style.margin = '10px 0'; gd.innerHTML = '<p class="muted" style="margin:0 0 6px">Charger tous les tableaux d’un millésime en une fois :</p>' + [...grp].map(([k, v], i) => `<button class="b primary" data-grp="${i}" style="margin:0 8px 6px 0">${esc(k)} (${v.length} fichiers)</button>`).join(''); box.appendChild(gd); gd.querySelectorAll('[data-grp]').forEach((b) => { b.onclick = () => syncLoadGroup([...grp][+b.dataset.grp]); }); }
   $('syLast').classList.toggle('hide', !last);
   if (last) $('syLast').textContent = `Recharger la dernière base (${last.path})`;
@@ -24260,7 +24285,7 @@ async function syncLoadGroup([k, files]) {
   try {
     if (!SYNC_ONLINE && !(await syncPerm(SYNC_DIR, false))) throw new Error('autorisation refusée');
     $('syMsg').innerHTML = `<span class="muted">Lecture de ${files.length} fichiers (${esc(k)})…</span>`;
-    const items = []; for (const f of files) items.push({ name: f.path.split('/').pop(), path: f.path, file: await f.h.getFile() });
+    const refs = SYNC_FILES.filter((x) => /^param/i.test(x.path) && /\.xlsx?$/i.test(x.path)); const items = []; for (const f of [...files, ...refs]) items.push({ name: f.path.split('/').pop(), path: f.path, file: await f.h.getFile() });
     const y = (k.split('/')[1] || '').match(/^(19|20)\d\d$/); await loadTables(items, { year: y ? y[0] : '' });
     $('syMsg').innerHTML = `<span class="badge ok">${esc(k)} : ${files.length} fichiers lus. Voir « Tableaux chargés » plus bas.</span>`;
   } catch (e) { err(e); }
@@ -24347,11 +24372,14 @@ async function onResolve() {
 const onChildren = async (itemPath) => (await (await gfetch(`/drives/${ON.drive}/items/${ON.root}${itemPath ? ':/' + encodeURI(itemPath) + ':' : ''}/children?$top=200`)).json()).value;
 
 async function onListBases() {
-  const out = []; const walk = async (path, depth) => { for (const c of await onChildren(path)) {
+  const out = [];
+  const walkIn = async (root, path, depth, label) => { for (const c of await onChildren(path)) {
     const full = path ? path + '/' + c.name : c.name;
-    if (c.file && /\.(csv|txt|xlsx|xls|xlsm)$/i.test(c.name)) out.push({ path: full.slice(ON.cfg.dossierBases.length + 1), mtime: new Date(c.lastModifiedDateTime).getTime(), size: c.size, h: { getFile: async () => { const r = await fetch(c['@microsoft.graph.downloadUrl']); return new File([await r.blob()], c.name, { lastModified: new Date(c.lastModifiedDateTime).getTime() }); } } });
-    else if (c.folder && depth < 5) await walk(full, depth + 1); } };
-  await walk(ON.cfg.dossierBases, 0); return out;
+    if (c.file && /\.(csv|txt|xlsx|xls|xlsm)$/i.test(c.name)) out.push({ path: label + full.slice(root.length + 1), mtime: new Date(c.lastModifiedDateTime).getTime(), size: c.size, h: { getFile: async () => { const r = await fetch(c['@microsoft.graph.downloadUrl']); if (!r.ok) throw new Error('lecture impossible (' + r.status + ')'); return new File([await r.blob()], c.name, { lastModified: new Date(c.lastModifiedDateTime).getTime() }); } } });
+    else if (c.folder && depth < 5) await walkIn(root, full, depth + 1, label); } };
+  await walkIn(ON.cfg.dossierBases, ON.cfg.dossierBases, 0, '');
+  const par = ON.cfg.dossierParametres || 'Paramètres'; try { await walkIn(par, par, 0, par + '/'); } catch { /* dossier Paramètres absent ou inaccessible */ }
+  return out;
 }
 async function onPut(name, blob) {
   const path = `${ON.cfg.dossierConsultation}/${name}`;
