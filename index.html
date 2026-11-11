@@ -21788,7 +21788,15 @@ async function readFile(file) {
   }
 }
 function loadSheet(name) {
-  const data = XLSX.utils.sheet_to_json(state.wb.Sheets[name], { defval: '', raw: true });
+  const ws = state.wb.Sheets[name];
+  const top = XLSX.utils.sheet_to_json(ws, { header: 1, range: 0, defval: '', blankrows: true }).slice(0, 40);
+  const hi = top.findIndex((r) => r.some((c) => /^etablissements$/i.test(String(c).trim())) && r.filter((c) => c !== '').length >= 5);
+  let data;
+  if (hi > 0) { // bandeau de métadonnées INSEE au-dessus du tableau
+    const m = top.slice(0, hi).map((r) => String(r[0] || '')).join(' ').match(/mill[ée]sime\s*((?:19|20)\d\d)/i);
+    if (m && $('millesime') && !$('millesime').value.trim()) $('millesime').value = m[1];
+    data = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true, range: hi });
+  } else data = XLSX.utils.sheet_to_json(ws, { defval: '', raw: true });
   setRaw(data.length ? Object.keys(data[0]) : [], data);
 }
 
@@ -21796,6 +21804,37 @@ function loadSheet(name) {
 // Tableaux INSEE « Flores » (commande à l'INSEE) : conversion au format de l'outil
 // ----------------------------------------------------------------------
 const FLORES_FAM = { association: 'Associations', cooperative: 'Coopératives', fondation: 'Fondations', mutuelle: 'Mutuelles', 'prive hors ess': 'Privé hors ESS', public: 'Public' };
+// Sorties INSEE « Tableau_FLORES_N » (colonnes DEP/REG, TYPOLOGIE_x, NOMJUR1, ETABLISSEMENTS, SECRET_…) -> modèle intermédiaire Flores
+function inseeNormalize(cols, data) {
+  const nk = Object.fromEntries(cols.map((c) => [String(c).toLowerCase(), c]));
+  if (!(nk.etablissements && nk.secret_etablissements !== undefined)) return null;
+  const typ = ['typologie_a', 'typologie_b', 'typologie_c'].find((t) => nk[t]);
+  const geoK = nk.reg ? 'reg' : nk.dep ? 'dep' : null;
+  const autres = ['teff_1', 'teff_2', 'csp', 'typemp', 'sexe', 'epci'].filter((t) => nk[t] || cols.some((c) => String(c).toLowerCase().startsWith(t + '_')));
+  const lbl = (k) => nk['lib_' + k];
+  if (!typ || !nk.nomjur1 || !geoK || autres.length) return { unsupported: true, dims: [geoK && geoK.toUpperCase(), typ && typ.toUpperCase(), nk.nomjur1 && 'NOMJUR1', ...autres.map((a) => a.toUpperCase())].filter(Boolean) };
+  const T = typ.slice(-1).toUpperCase(); const td = nk[typ + '_d']; const key = (r, c) => String(r[c] ?? '').trim();
+  const FAM = { '01': 'Coopérative', '02': 'Mutuelle', '03': 'Association', '04': 'Fondation', '06': 'Public', '07': 'Privé hors ESS' };
+  const sv = (r, v, sc) => (/^s$/i.test(key(r, nk[sc] || '')) ? 'S' : r[nk[v]]);
+  const hasCode = new Set(); // secteurs sans détail : la ligne « code = code détaillé » prime sur la ligne « Total »
+  for (const r of data) if (key(r, nk[typ]) === key(r, td)) hasCode.add([r[nk[geoK]], key(r, nk.ess || ''), key(r, nk.nomjur1), key(r, nk[typ])].join('|'));
+  const out = [];
+  for (const r of data) {
+    const t = key(r, nk[typ]); const d = key(r, td); const tot = /^total$/i.test(t);
+    if (!tot && /^total$/i.test(d) && hasCode.has([r[nk[geoK]], key(r, nk.ess || ''), key(r, nk.nomjur1), t].join('|'))) continue;
+    const nj = key(r, nk.nomjur1); const essv = key(r, nk.ess || '');
+    let fam = FAM[nj]; if (!fam) { if (!/^total$/i.test(nj) || !/^(ess|aut)$/i.test(essv)) continue; fam = 'Ensemble'; }
+    const g = key(r, nk[geoK]); const geo = /^total$/i.test(g) ? 'France entière' : String(r[lbl(geoK)] || g).trim();
+    const o = { Lib_social_dom: fam, ess: /^ess$/i.test(essv) ? 'ESS' : 'Hors ESS', [geoK]: geo };
+    o['typo_' + T] = tot ? 'Ensemble' : String(r[lbl(typ)] || t).trim(); o['typo_' + T + '_d'] = tot || d === t || /^total$/i.test(d) ? 'Ensemble' : String(r[lbl(typ + '_d')] || d).trim();
+    o.etab = sv(r, 'etablissements', 'secret_etablissements');
+    if (nk.eff3112) o.total_postes = sv(r, 'eff3112', 'secret_eff3112');
+    if (nk.effeqtp) o.eff_eqtp = sv(r, 'effeqtp', 'secret_effeqtp');
+    if (nk.rembrutem || nk.rembruteme) { const c = nk.rembruteme || nk.rembrutem; const v = sv(r, c.toLowerCase(), 'secret_rembruteme'); o.rem_tot = v === 'S' || v === '' || v == null ? v : num(v) * 1e6; }
+    out.push(o);
+  }
+  return { cols: Object.keys(out[0] || {}), data: out, geo: geoK === 'reg' ? 'régions' : 'départements', typ: T };
+}
 function floresConvert(cols, data) {
   const nk = Object.fromEntries(cols.map((c) => [normKey(c), c]));
   if (!(nk.lib_social_dom && nk.etab && (nk.total_postes || nk.eff_eqtp))) return null;
@@ -21844,6 +21883,9 @@ function floresConvert(cols, data) {
   return { cols: ['territoire', 'famille', 'secteur', 'annee', 'etablissements', 'entreprises', 'effectifs', ...(mes.some((m) => m[0] === 'etp') ? ['etp'] : []), ...(mes.some((m) => m[0] === 'ms') ? ['masse_salariale'] : []), 'secret_insee'], data: out, year, nS: out.filter((o) => o.secret_insee).length, nTot: out.length };
 }
 function setRaw(cols, data) {
+  const ins = (() => { try { return inseeNormalize(cols, data); } catch (e) { console.error(e); return null; } })();
+  if (ins && ins.unsupported) { $('loadMsg').innerHTML = `<div class="msg warn">Tableau INSEE Flores reconnu (croisement : ${esc(ins.dims.join(' × '))}), mais ce type de croisement n’est pas encore intégré à l’outil. Seuls les tableaux « territoire × famille juridique × typologie sectorielle » (région ou département) sont lus pour l’instant.</div>`; state.raw = []; state.cols = []; $('mapCard').classList.add('hide'); $('previewCard').classList.add('hide'); return; }
+  if (ins) { cols = ins.cols; data = ins.data; }
   let flores = null; try { flores = floresConvert(cols, data); } catch (e) { console.error(e); }
   if (flores) { cols = flores.cols; data = flores.data; }
   state.raw = data; state.cols = cols;
@@ -24150,7 +24192,7 @@ async function onListBases() {
   const out = []; const walk = async (path, depth) => { for (const c of await onChildren(path)) {
     const full = path ? path + '/' + c.name : c.name;
     if (c.file && /\.(csv|txt|xlsx|xls|xlsm)$/i.test(c.name)) out.push({ path: full.slice(ON.cfg.dossierBases.length + 1), mtime: new Date(c.lastModifiedDateTime).getTime(), size: c.size, h: { getFile: async () => { const r = await fetch(c['@microsoft.graph.downloadUrl']); return new File([await r.blob()], c.name, { lastModified: new Date(c.lastModifiedDateTime).getTime() }); } } });
-    else if (c.folder && depth < 2) await walk(full, depth + 1); } };
+    else if (c.folder && depth < 5) await walk(full, depth + 1); } };
   await walk(ON.cfg.dossierBases, 0); return out;
 }
 async function onPut(name, blob) {
