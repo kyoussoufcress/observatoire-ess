@@ -25188,8 +25188,9 @@ function fiRowsL(list, t, need, measure) {
   return n ? { rows, n, of: list.length } : null;
 }
 /** Comme fiRowsL, mais si le millésime demandé n'a pas ce croisement, reprend le plus récent des autres millésimes (signalé dans la fiche). */
+let FI_FB = false;
 function fiRowsFb(D, key, list, t, need, measure) {
-  let r = fiRowsL(list, t, need, measure); if (r) return r;
+  let r = fiRowsL(list, t, need, measure); if (r || !FI_FB) return r;
   for (const tt of state.times.slice().sort().reverse()) { if (tt === t) continue; r = fiRowsL(list, tt, need, measure); if (r) { D.fb[key] = tt; return r; } }
   return null;
 }
@@ -25268,8 +25269,8 @@ function renderFiches() {
   const box = $('fichesCtl'); if (!box) return;
   if (!state.rows.length) { box.innerHTML = '<div class="card"><p class="muted" style="margin:0">Chargez d’abord les données FLORES (onglet Données).</p></div>'; $('fichesOut').innerHTML = ''; return; }
   const terrs = fichesTerrs(); const times = state.times.slice().sort().reverse(); const cur = box.dataset.t || times[0]; const ct = box.dataset.terr || terrs[0]; const nOM = FI_OM().length;
-  box.innerHTML = `<div class="card noprint"><div class="row"><div><label class="f">Territoire</label><select id="fiTerr">${terrs.map((x) => `<option${x === ct ? ' selected' : ''}>${esc(x)}</option>`).join('')}${FI_OM().length > 1 ? `<option value="__om"${ct === '__om' ? ' selected' : ''}>Outre-mer — agrégat (${FI_OM().length} territoires)</option>` : ''}<option value="__fr"${ct === '__fr' ? ' selected' : ''}>France entière — agrégat (${terrs.length} régions)</option><option value="__all"${ct === '__all' ? ' selected' : ''}>Toutes les régions (un document)</option></select></div><div><label class="f">Millésime</label><select id="fiT">${times.map((x) => `<option${x === cur ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div><button class="b primary" id="fiGo">Générer la fiche</button><button class="b" id="fiPrint" disabled>Imprimer / PDF</button></div></div>`;
-  $('fiGo').onclick = () => { box.dataset.terr = $('fiTerr').value; box.dataset.t = $('fiT').value; const t = $('fiT').value; const list = $('fiTerr').value === '__all' ? ['__fr', ...(nOM > 1 ? ['__om'] : []), ...terrs] : [$('fiTerr').value];
+  box.innerHTML = `<div class="card noprint"><div class="row"><div><label class="f">Territoire</label><select id="fiTerr">${terrs.map((x) => `<option${x === ct ? ' selected' : ''}>${esc(x)}</option>`).join('')}${FI_OM().length > 1 ? `<option value="__om"${ct === '__om' ? ' selected' : ''}>Outre-mer — agrégat (${FI_OM().length} territoires)</option>` : ''}<option value="__fr"${ct === '__fr' ? ' selected' : ''}>France entière — agrégat (${terrs.length} régions)</option><option value="__all"${ct === '__all' ? ' selected' : ''}>Toutes les régions (un document)</option></select></div><div><label class="f">Millésime</label><select id="fiT">${times.map((x) => `<option${x === cur ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div><label class="muted" style="align-self:end;display:flex;gap:6px;align-items:center"><input type="checkbox" id="fiFb"${FI_FB ? ' checked' : ''}> Compléter avec un autre millésime si un croisement manque</label><button class="b primary" id="fiGo">Générer la fiche</button><button class="b" id="fiPrint" disabled>Imprimer / PDF</button></div></div>`;
+  $('fiGo').onclick = () => { FI_FB = $('fiFb').checked; box.dataset.terr = $('fiTerr').value; box.dataset.t = $('fiT').value; const t = $('fiT').value; const list = $('fiTerr').value === '__all' ? ['__fr', ...(nOM > 1 ? ['__om'] : []), ...terrs] : [$('fiTerr').value];
     try { const pages = list.map((x) => ficheData(x, t)).filter((d) => d.ok).map((d) => ficheHTML(d)); $('fichesOut').innerHTML = pages.length ? pages.join('') : '<div class="card"><p class="muted" style="margin:0">Aucune donnée pour ce territoire et ce millésime.</p></div>'; $('fiPrint').disabled = !pages.length; } catch (e) { err(e); } };
   $('fiPrint').onclick = () => { const s = $('v-fiches'); s.classList.add('printing'); window.print(); setTimeout(() => s.classList.remove('printing'), 500); };
 }
