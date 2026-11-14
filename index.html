@@ -23130,11 +23130,13 @@ function buildPanorama(f) {
     docs.push(B.table(`Tableau 7 — Évolution des effectifs ESS par famille, ${t0}-${t}`, ['Famille', `Salariés ${t0}`, `Salariés ${t}`, 'Évolution (emplois)', 'Évolution (%)'],
       ev.map((l) => [l.k, l.sec ? 's' : fInt(l.a0.eff), fInt(sv(l.a1, l.a1.eff)), l.sec ? 's' : fSgnInt(l.solde), l.sec ? 's' : fSgn(l.evol) + NB + '%']), null, sourceLine(`${t0}-${t}`)));
   }
-  try { if (typeof ficheData === 'function' && f.geoLevel === 'geo1' && f.geoValue) { const d = ficheData(f.geoValue, t); if (d && d.ok && (d.sexe || d.csp)) {
+  const pex = typeof panoExtra === 'function' ? panoExtra(f, t) : []; const pexSexe = pex.some((b) => b.text === 'Les femmes et les catégories socio-professionnelles');
+  if (!pexSexe) try { if (typeof ficheData === 'function' && f.geoLevel === 'geo1' && f.geoValue) { const d = ficheData(f.geoValue, t); if (d && d.ok && (d.sexe || d.csp)) {
     docs.push(B.h2('Les femmes dans l’ESS'));
     if (d.sexe) { const tf = d.sexe.f + d.sexe.h; docs.push(B.p(`Les femmes occupent ${fPct(pct(d.sexe.f, tf))} des emplois salariés de l’ESS (${fInt(d.sexe.f)} postes), contre ${fPct(pct(d.sexe.h, tf))} pour les hommes. Source : INSEE, FLORES ${t} (postes au 31 décembre).`)); }
     if (d.csp) docs.push(B.table('Tableau — Catégories socio-professionnelles dans l’ESS', ['Catégorie', 'Part des emplois', 'Part de femmes'], d.csp.map((x) => [x.n, fPct(x.share), fPct(x.fem)]), null, sourceLine(t)));
   } } } catch (e) { console.warn('section femmes du panorama', e); }
+  docs.push(...pex);
   docs.push(...methodoBlocks(t));
   return docs;
 }
@@ -24059,15 +24061,15 @@ const _renderPubFiltersBase = renderPubFilters;
 renderPubFilters = function () {
   _renderPubFiltersBase();
   const sel = $('pubType'); const hasF = state.rows.length > 0; const quarterly = state.timeType === 'trimestre';
-  const grpF = [['panorama', 'Panorama de l’ESS rédigé'], ['panorama_om', 'Panorama multi-territoires (format Outre-mer)'], ['portrait', 'Portrait de territoire'], ['sectorielle', 'Étude sectorielle'], ['comparatif', 'Analyse comparative des territoires'], ['chiffre', 'Fiche « chiffre clé »']];
+  const grpF = [['panorama', 'Panorama de l’ESS rédigé'], ['panorama_om', 'Panorama multi-territoires (format Outre-mer)'], ['portrait', 'Portrait de territoire'], ['epci', 'Diagnostic intercommunal (EPCI)'], ['sectorielle', 'Étude sectorielle'], ['comparatif', 'Analyse comparative des territoires'], ['chiffre', 'Fiche « chiffre clé »']];
   const grpU = [['conjoncture', 'Note de conjoncture rédigée']]; if (quarterly) grpU.push(['diagnostic', 'Diagnostic territorial (portrait + dynamiques)'], ['dynamiques', 'Analyse des dynamiques et des causes']);
   const opt = (l) => l.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
   const cur = sel.value; sel.innerHTML = `<optgroup label="Structure de l’ESS · données FLORES (Insee, annuel)">${opt(grpF)}</optgroup><optgroup label="Conjoncture · séries Acoss-Urssaf (trimestriel)">${opt(grpU)}</optgroup>`;
   sel.value = [...grpF, ...grpU].some(([v]) => v === cur) ? cur : (hasF ? 'panorama' : 'conjoncture');
   if (hasF) { const secs = [...new Set(state.rows.filter(ESSf).map((r) => r.secteur))].filter((x) => x !== 'Non renseigné').sort();
-    $('pubFlo').insertAdjacentHTML('beforeend', selectHTML('pubT0', 'Depuis (comparaison)', state.times, compatTimes(lastT())[0]) + selectHTML('pubSecteur', 'Secteur', secs, secs[0])); }
+    $('pubFlo').insertAdjacentHTML('beforeend', selectHTML('pubEpci', 'Intercommunalité', ESS.paEpciList().length ? ESS.paEpciList() : ['(tableau ID_1 non chargé)'], '') + selectHTML('pubT0', 'Depuis (comparaison)', state.times, compatTimes(lastT())[0]) + selectHTML('pubSecteur', 'Secteur', secs, secs[0])); }
   const upd = () => { const v = sel.value; const u = v === 'conjoncture' && !!state.urs; $('pubFlo').style.display = u ? 'none' : 'contents'; $('pubUrs').style.display = u ? 'contents' : 'none';
-    if ($('pubChiffre')) $('pubChiffre').parentElement.classList.toggle('hide', v !== 'chiffre'); if ($('pubSecteur')) $('pubSecteur').parentElement.classList.toggle('hide', v !== 'sectorielle'); if ($('pubT0')) $('pubT0').parentElement.classList.toggle('hide', !['diagnostic', 'dynamiques', 'comparatif'].includes(v)); };
+    if ($('pubChiffre')) $('pubChiffre').parentElement.classList.toggle('hide', v !== 'chiffre'); if ($('pubSecteur')) $('pubSecteur').parentElement.classList.toggle('hide', v !== 'sectorielle'); if ($('pubEpci')) $('pubEpci').parentElement.classList.toggle('hide', v !== 'epci'); if ($('pubT0')) $('pubT0').parentElement.classList.toggle('hide', !['diagnostic', 'dynamiques', 'comparatif'].includes(v)); };
   sel.onchange = upd; upd();
 };
 function generateFromPub() { state.pubMode = true; try { generateFromPubInner(); } finally { state.pubMode = false; } }
@@ -24082,6 +24084,7 @@ function generateFromPubInner() {
     case 'conjoncture': docs = buildConjoncture(f); if (prevYear(t) && state.times.includes(prevYear(t))) insertBeforeMethodo(docs, [B.h2('Éléments d’explication'), ...analyseDynamique(f, prevYear(t), t, { noTitle: true, level: 3, maxEvents: 4 }).filter((b) => !(b.t === 'h3' && b.text === 'Les phases de l’emploi'))]); break;
     case 'panorama_om': docs = buildPanoramaOM(t); break;
     case 'portrait': docs = buildPortrait(f); break;
+    case 'epci': docs = ESS.buildEpci($('pubEpci').value, t); break;
     case 'diagnostic': if (!f.geoLevel) { docs = [B.h1('Choisissez un territoire'), B.p('Le diagnostic porte sur un territoire précis.')]; break; } docs = buildDiagnostic(f, t0 || compatTimes(t)[0], t); break;
     case 'sectorielle': docs = buildSectorielle(t, $('pubSecteur').value, f); break;
     case 'comparatif': docs = buildComparatif(t, f.geoLevel === 'geo1' && state.map.geo2 ? 'geo2' : 'geo1', t0 || compatTimes(t)[0]); break;
@@ -24090,8 +24093,8 @@ function generateFromPubInner() {
   }
   { const t0q = (['diagnostic', 'comparatif', 'dynamiques'].includes(type) && t0) || (type === 'conjoncture' ? prevYear(t) : compatTimes(t)[0]) || t;
     const evs = ['portrait', 'panorama_om', 'sectorielle', 'chiffre'].includes(type);
-    const bq = blocQualitatif(f, t0q, t, { events: evs }); if (bq.length) insertBeforeMethodo(docs, bq); }
-  const names = { panorama: 'Panorama_ESS', panorama_om: 'Panorama_ESS_multi_territoires', conjoncture: 'Note_conjoncture_ESS', portrait: 'Portrait_ESS', diagnostic: 'Diagnostic_ESS', sectorielle: 'Etude_sectorielle_ESS', comparatif: 'Analyse_comparative_ESS', dynamiques: 'Analyse_dynamiques_ESS', chiffre: 'Chiffre_cle_ESS' };
+    const bq = type === 'epci' ? [] : blocQualitatif(f, t0q, t, { events: evs }); if (bq.length) insertBeforeMethodo(docs, bq); }
+  const names = { epci: 'Diagnostic_intercommunal_ESS', panorama: 'Panorama_ESS', panorama_om: 'Panorama_ESS_multi_territoires', conjoncture: 'Note_conjoncture_ESS', portrait: 'Portrait_ESS', diagnostic: 'Diagnostic_ESS', sectorielle: 'Etude_sectorielle_ESS', comparatif: 'Analyse_comparative_ESS', dynamiques: 'Analyse_dynamiques_ESS', chiffre: 'Chiffre_cle_ESS' };
   generatePublication(docs, `${names[type]}_${type === 'sectorielle' ? normKey($('pubSecteur').value).slice(0, 30) + '_' : ''}${n}_${t}`);
 }
 
@@ -25805,6 +25808,71 @@ function renderFiches() {
   $('fiPrint').onclick = () => { const s = $('v-fiches'); s.classList.add('printing'); window.print(); setTimeout(() => s.classList.remove('printing'), 500); };
 }
 Object.assign(window.ESS, { ficheData, ficheHTML, renderFiches });
+
+/* ===== Panorama : exploitation complète des tableaux FLORES chargés (comparaisons ESS / privé hors ESS / public, départements, intercommunalités) =====
+   Données annuelles Insee (postes au 31 décembre) : aucune évolution n'est calculée ici. */
+const PA_ST = ['ESS', 'Privé hors ESS', 'Public'];
+const paTabs = (dims, level, t) => state.tables.filter((x) => dims.every((d) => x.dims.includes(d)) && (!level || x.level === level) && x.nonESS && (!t || !x.years || !x.years.size || x.years.has(t)));
+const paRows = (tab, t, geo) => tab.rows.filter((r) => (!r.t || r.t === t) && Object.entries(geo || {}).every(([k, v]) => r[k] === v));
+const paSum = (rows) => rows.reduce((a, r) => { if (r.sec) { a.s++; return a; } a.etab += r.w || 0; a.eff += r.eff || 0; return a; }, { etab: 0, eff: 0, s: 0 });
+const paShare = (a, b) => (b > 0 ? a / b * 100 : null);
+const paSrc = (t) => `Source : Insee, FLORES ${t} (postes au 31 décembre).`;
+/** Taille des établissements : ESS comparée au privé hors ESS (et au public si présent). */
+function paTaille(f, t) {
+  if (f.geoLevel !== 'geo1' || !f.geoValue) return []; const tab = paTabs(['taille', 'statut'], 'reg', t)[0]; if (!tab) return [];
+  const rows = paRows(tab, t, { geo1: f.geoValue }).filter((r) => r.taille && PA_ST.includes(r.statut)); if (!rows.length) return [];
+  const tailles = [...new Set(rows.map((r) => r.taille))]; const S = {}; for (const st of PA_ST) { const rs = rows.filter((r) => r.statut === st); if (rs.length) S[st] = { tot: paSum(rs), by: Object.fromEntries(tailles.map((k) => [k, paSum(rs.filter((r) => r.taille === k))])) }; }
+  if (!S.ESS) return []; const sts = PA_ST.filter((s) => S[s]); const small = tailles.find((k) => /moins de 10|^0|1 à 9/i.test(k)) || tailles[0];
+  const docs = [B.h2('La taille des établissements : l’ESS comparée aux autres économies')];
+  docs.push(B.p(`${fPct(paShare(S.ESS.by[small].etab, S.ESS.tot.etab))} des établissements employeurs de l’ESS comptent ${small.toLowerCase()}${S['Privé hors ESS'] ? `, contre ${fPct(paShare(S['Privé hors ESS'].by[small].etab, S['Privé hors ESS'].tot.etab))} dans le privé hors ESS` : ''}. ${(() => { const big = tailles.filter((k) => /^(50|250|plus)/i.test(k)); if (!big.length) return ''; const e = big.reduce((s, k) => s + S.ESS.by[k].eff, 0); const p = S['Privé hors ESS'] ? big.reduce((s, k) => s + S['Privé hors ESS'].by[k].eff, 0) : null; return `Les établissements de 50 salariés et plus concentrent ${fPct(paShare(e, S.ESS.tot.eff))} des emplois de l’ESS${p != null ? `, contre ${fPct(paShare(p, S['Privé hors ESS'].tot.eff))} dans le privé hors ESS` : ''}.`; })()}`));
+  docs.push(B.table('Tableau — Répartition des établissements et des salariés par taille', ['Taille', ...sts.map((s) => `Établissements : ${s}`), ...sts.map((s) => `Salariés : ${s}`)], tailles.map((k) => [k, ...sts.map((s) => fPct(paShare(S[s].by[k].etab, S[s].tot.etab))), ...sts.map((s) => fPct(paShare(S[s].by[k].eff, S[s].tot.eff)))]), null, paSrc(t) + (sts.some((s) => S[s].tot.s) ? ' Cases sous secret statistique exclues du calcul.' : '')));
+  return docs;
+}
+/** Femmes et catégories socio-professionnelles : ESS comparée aux autres économies. */
+function paSexe(f, t) {
+  if (f.geoLevel !== 'geo1' || !f.geoValue) return []; const tab = paTabs(['sexe', 'csp', 'statut'], 'reg', t)[0]; if (!tab) return [];
+  const rows = paRows(tab, t, { geo1: f.geoValue }).filter((r) => PA_ST.includes(r.statut)); if (!rows.length) return [];
+  const sx = (r) => (/^f/i.test(String(r.sexe || r.sx || '')) ? 'F' : /^h/i.test(String(r.sexe || r.sx || '')) ? 'H' : null);
+  const key = Object.keys(rows[0]).find((k) => /^sexe$/i.test(k)) ? 'sexe' : null; const sexOf = (r) => (key ? (/^f/i.test(String(r[key])) ? 'F' : /^h/i.test(String(r[key])) ? 'H' : null) : sx(r));
+  const out = {}; for (const st of PA_ST) { const rs = rows.filter((r) => r.statut === st); if (!rs.length) continue; const fem = paSum(rs.filter((r) => sexOf(r) === 'F')).eff; const hom = paSum(rs.filter((r) => sexOf(r) === 'H')).eff; out[st] = { fem, hom, csp: {} }; for (const c of new Set(rs.map((r) => r.csp))) { const a = paSum(rs.filter((r) => r.csp === c && sexOf(r) === 'F')).eff; const b = paSum(rs.filter((r) => r.csp === c && sexOf(r) === 'H')).eff; out[st].csp[c] = { f: a, h: b }; } }
+  if (!out.ESS || out.ESS.fem + out.ESS.hom <= 0) return []; const sts = PA_ST.filter((s) => out[s]); const docs = [B.h2('Les femmes et les catégories socio-professionnelles')];
+  docs.push(B.p(`Les femmes occupent ${fPct(paShare(out.ESS.fem, out.ESS.fem + out.ESS.hom))} des emplois salariés de l’ESS${out['Privé hors ESS'] ? `, contre ${fPct(paShare(out['Privé hors ESS'].fem, out['Privé hors ESS'].fem + out['Privé hors ESS'].hom))} dans le privé hors ESS` : ''}${out.Public ? ` et ${fPct(paShare(out.Public.fem, out.Public.fem + out.Public.hom))} dans le public` : ''}.`));
+  const cs = [...new Set(Object.values(out).flatMap((o) => Object.keys(o.csp)))].filter((c) => !/^(ensemble|total)/i.test(c));
+  docs.push(B.table('Tableau — Catégories socio-professionnelles et part des femmes', ['Catégorie', ...sts.map((s) => `Part des emplois : ${s}`), ...sts.map((s) => `Part de femmes : ${s}`)], cs.map((c) => [c, ...sts.map((s) => { const o = out[s]; const tt = o.fem + o.hom; const x = o.csp[c]; return x ? fPct(paShare(x.f + x.h, tt)) : '—'; }), ...sts.map((s) => { const x = out[s].csp[c]; return x ? fPct(paShare(x.f, x.f + x.h)) : '—'; })]), null, paSrc(t)));
+  return docs;
+}
+/** Départements d'une région : poids de l'ESS dans l'emploi. */
+function paDeps(f, t) {
+  if (f.geoLevel !== 'geo1' || !f.geoValue) return []; const tab = paTabs(['geo2', 'statut'], 'dep', t)[0]; if (!tab) return [];
+  const rows = paRows(tab, t, { geo1: f.geoValue }); const deps = [...new Set(rows.map((r) => r.geo2))].filter(Boolean); if (deps.length < 2) return [];
+  const L = deps.map((d) => { const rs = rows.filter((r) => r.geo2 === d); const e = paSum(rs.filter((r) => r.statut === 'ESS')); const p = paSum(rs.filter((r) => r.statut === 'Privé hors ESS')); const u = paSum(rs.filter((r) => r.statut === 'Public')); return { d, e, p, u, poidsPriv: paShare(e.eff, e.eff + p.eff), poids: paShare(e.eff, e.eff + p.eff + u.eff) }; }).filter((x) => x.e.eff > 0);
+  if (L.length < 2) return []; const byP = L.slice().sort((a, b) => (b.poidsPriv ?? 0) - (a.poidsPriv ?? 0)); const byV = L.slice().sort((a, b) => b.e.eff - a.e.eff);
+  const docs = [B.h2('L’ESS dans les départements')];
+  docs.push(B.p(`Le poids de l’ESS dans l’emploi salarié privé varie de ${fPct(byP.at(-1).poidsPriv)} (${byP.at(-1).d}) à ${fPct(byP[0].poidsPriv)} (${byP[0].d}). En volume, ${byV[0].d} concentre le plus d’emplois de l’ESS (${fInt(byV[0].e.eff)} salariés, ${fPct(paShare(byV[0].e.eff, L.reduce((s, x) => s + x.e.eff, 0)))} de la région).`));
+  docs.push(B.chart('Graphique — Poids de l’ESS dans l’emploi salarié privé par département (%)', cfgBarH(byP.map((x) => x.d), byP.map((x) => +x.poidsPriv.toFixed(1)), { doc: true, unit: ' %' }), paSrc(t), 900, Math.max(260, 28 * byP.length + 60)));
+  docs.push(B.table('Tableau — L’ESS par département', ['Département', 'Établissements ESS', 'Salariés ESS', 'Salariés privé hors ESS', 'Poids dans l’emploi privé'], byV.map((x) => [x.d, fInt(x.e.etab), fInt(x.e.eff), fInt(x.p.eff), fPct(x.poidsPriv)]), null, paSrc(t)));
+  return docs;
+}
+const panoExtra = (f, t) => { const o = []; for (const fn of [paDeps, paTaille, paSexe]) { try { o.push(...fn(f, t)); } catch (e) { console.warn('panorama', fn.name, e); } } return o; };
+/** Diagnostic intercommunal (EPCI) : poids de l'ESS, secteurs, positionnement parmi les intercommunalités chargées. */
+const paEpciList = () => { const tab = paTabs(['geo3', 'statut'], 'epci')[0]; return tab ? [...new Set(tab.rows.map((r) => r.geo3))].filter(Boolean).sort((a, b) => a.localeCompare(b, 'fr')) : []; };
+function buildEpci(name, t) {
+  const tab = paTabs(['geo3', 'statut'], 'epci', t)[0]; if (!tab || !name) return [B.h1('Diagnostic intercommunal impossible'), B.p('Chargez le tableau FLORES des intercommunalités (ID_1) et choisissez un territoire.')];
+  const all = tab.rows.filter((r) => !r.t || r.t === t); const mine = all.filter((r) => r.geo3 === name); const g = (st, rs = mine) => paSum(rs.filter((r) => r.statut === st));
+  const e = g('ESS'); const p = g('Privé hors ESS'); const u = g('Public'); const pw = paShare(e.eff, e.eff + p.eff); const hasPub = mine.some((r) => r.statut === 'Public'); const pa = hasPub ? paShare(e.eff, e.eff + p.eff + u.eff) : null;
+  const per = new Map(); for (const r of all) { if (!r.geo3) continue; const o = per.get(r.geo3) || { e: 0, p: 0 }; if (!r.sec) { if (r.statut === 'ESS') o.e += r.eff || 0; else if (r.statut === 'Privé hors ESS') o.p += r.eff || 0; } per.set(r.geo3, o); }
+  const ranks = [...per.entries()].filter(([, o]) => o.e + o.p > 200).map(([k, o]) => [k, paShare(o.e, o.e + o.p)]).sort((a, b) => b[1] - a[1]); const pos = ranks.findIndex(([k]) => k === name) + 1; const med = ranks.length ? ranks[Math.floor(ranks.length / 2)][1] : null;
+  const docs = [B.bandeau(`Diagnostic territorial · ${t}`), B.h1(`L’économie sociale et solidaire : ${name}`), B.chapeau(`En ${t}, l’ESS rassemble ${fInt(e.etab)} établissements employeurs et ${fInt(e.eff)} salariés sur le territoire, ${pa != null ? `soit ${fPct(pa)} des emplois salariés${pw != null ? ` et ${fPct(pw)} de l’emploi privé` : ''}` : `soit ${fPct(pw)} de l’emploi salarié privé`}.`),
+    B.kpis([{ v: fInt(e.etab), l: 'établissements employeurs ESS' }, { v: fInt(e.eff), l: 'salariés ESS' }, { v: fPct(pw), l: 'de l’emploi privé' }]), B.h2('Le poids de l’ESS dans l’économie du territoire'),
+    B.table('Tableau — Établissements et emplois salariés par statut', ['', 'ESS', 'Privé hors ESS', ...(hasPub ? ['Public'] : [])], [['Établissements employeurs', fInt(e.etab), fInt(p.etab), ...(hasPub ? [fInt(u.etab)] : [])], ['Salariés', fInt(e.eff), fInt(p.eff), ...(hasPub ? [fInt(u.eff)] : [])]], null, paSrc(t))];
+  if (pos && med != null) docs.push(B.p(`Parmi les ${ranks.length} intercommunalités chargées (plus de 200 salariés privés), ${name} se classe au ${pos}${pos === 1 ? 'er' : 'e'} rang pour le poids de l’ESS dans l’emploi privé (${fPct(pw)}), la valeur médiane étant de ${fPct(med)}.`));
+  const sec = [...new Set(mine.map((r) => r.secteur))].map((s) => { const se = g('ESS', mine.filter((r) => r.secteur === s)); const sp = g('Privé hors ESS', mine.filter((r) => r.secteur === s)); return { s, se, sp, part: paShare(se.eff, e.eff), poids: paShare(se.eff, se.eff + sp.eff) }; }).filter((x) => x.se.eff > 0 && !/^(ensemble|total)/i.test(x.s)).sort((a, b) => b.se.eff - a.se.eff);
+  if (sec.length) { docs.push(B.h2('Les secteurs d’activité de l’ESS'), B.p(`Le secteur « ${sec[0].s} » rassemble ${fPct(sec[0].part)} des salariés de l’ESS du territoire.${sec.filter((x) => x.poids >= 50).length ? ` L’ESS est majoritaire dans ${sec.filter((x) => x.poids >= 50).map((x) => `« ${x.s} » (${fPct(x.poids)})`).join(', ')}.` : ''}`),
+    B.table('Tableau — L’ESS par secteur d’activité', ['Secteur', 'Établissements ESS', 'Salariés ESS', 'Part des salariés ESS', 'Poids de l’ESS dans le secteur'], sec.map((x) => [x.s, fInt(x.se.etab), fInt(x.se.eff), fPct(x.part), fPct(x.poids)]), ['Ensemble', fInt(e.etab), fInt(e.eff), fPct(100), fPct(pw)], paSrc(t))); }
+  docs.push(B.h2('Source et méthode'), B.p(`Source : Insee, FLORES ${t} (tableau des intercommunalités), postes au 31 décembre, tous régimes de sécurité sociale. Les cases sous secret statistique sont exclues des totaux : les chiffres peuvent être légèrement sous-estimés pour les petits territoires. Aucune évolution n’est calculée : voir la note de conjoncture (Acoss-Urssaf) pour les tendances.`));
+  return docs;
+}
+Object.assign(window.ESS, { panoExtra, buildEpci, paEpciList });
 
 /* ======================================================================
    Dossier partagé (SharePoint / OneDrive / Drive synchronisé sur l'ordinateur).
