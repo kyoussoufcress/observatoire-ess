@@ -284,6 +284,7 @@ header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media
   <button data-v="explorer" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Explorer & répondre</span></button>
   <button data-v="comparer" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg><span>Comparer les territoires</span></button>
   <button data-v="dynamiques" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>Dynamiques & causes</span></button>
+  <button data-v="conjoncture" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M6 16v-4M11 16V8M16 16v-6M21 16V5"/></svg>Conjoncture</button>
   <div class="nav-group">Produire</div>
   <button data-v="publications" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h6"/></svg><span>Publications</span></button>
   <button data-v="fiches" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg><span>Fiches territoire</span></button>
@@ -418,6 +419,12 @@ header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media
   <div id="dynOut"></div>
 </section>
 
+<section class="view" id="v-conjoncture">
+  <h2 class="vt">Conjoncture de l’emploi (Urssaf)</h2>
+  <p class="lead">Note de conjoncture trimestrielle à tout échelon (France, Outre-mer, région, département), calculée sur les séries brutes Acoss-Urssaf en glissement annuel. Ces méthodes ne s’appliquent pas aux données FLORES.</p>
+  <div id="conjCtl"></div>
+  <div id="conjOut"></div>
+</section>
 <!-- ANNUAIRE -->
 <section class="view" id="v-annuaire">
   <h2 class="vt">Annuaire des entreprises de l’ESS</h2>
@@ -21920,6 +21927,7 @@ async function readFile(file) {
     const r = parseCSV(text); setRaw(r.cols, r.data); $('sheetRow').hidden = true;
   } else {
     state.wb = XLSX.read(buf, { type: 'array', dense: true, cellStyles: false, cellNF: false, cellText: false });
+    for (const n of state.wb.SheetNames) { const x = sheetData(state.wb.Sheets[n]); if (ursDetect(x.cols)) { const u = ursConvert(x, { name: file.name, path: file.name }); if (u.kind === 'urs') { ursSet(u); cPut('URS', u); msg.innerHTML = `<div class="msg ok">Séries trimestrielles Acoss-Urssaf lues : ${u.times[0]} à ${u.times.at(-1)}, ${fInt(u.rows.length)} séries (feuille « ${esc(n)} »). Elles alimentent l’onglet « Conjoncture » et l’assistant.</div>`; state.wb = null; return; } } }
     const sel = $('sheet'); sel.innerHTML = state.wb.SheetNames.map((n) => `<option>${esc(n)}</option>`).join('');
     $('sheetRow').hidden = state.wb.SheetNames.length < 2;
     const best = state.wb.SheetNames.find((n) => { const h = XLSX.utils.sheet_to_json(state.wb.Sheets[n], { header: 1, range: 0 })[0] || []; const k = h.map(normKey); return k.includes('lib_social_dom') && k.includes('etab'); }) || state.wb.SheetNames[0];
@@ -21928,7 +21936,7 @@ async function readFile(file) {
 }
 function sheetData(ws) {
   const top = XLSX.utils.sheet_to_json(ws, { header: 1, range: 0, defval: '', blankrows: true }).slice(0, 40);
-  const hi = top.findIndex((r) => r.some((c) => /^etablissements$/i.test(String(c).trim())) && r.filter((c) => c !== '').length >= 5);
+  const hi = top.findIndex((r) => r.some((c) => /^(etablissements|reg|dep)$/i.test(String(c).trim())) && r.filter((c) => c !== "").length >= 5);
   let year = '';
   if (hi > 0) { const m = top.slice(0, hi).map((r) => String(r[0] || '')).join(' ').match(/mill[ée]sime\s*((?:19|20)\d\d)/i); if (m) year = m[1]; }
   const data = XLSX.utils.sheet_to_json(ws, hi > 0 ? { defval: '', raw: true, range: hi } : { defval: '', raw: true });
@@ -21984,7 +21992,7 @@ async function fastXlsx(buf) {
 /** Équivalent de sheetData() à partir de lignes brutes (lecteur rapide). */
 function sheetDataRows(rows) {
   const W = rows.slice(0, 600).reduce((m, r) => Math.max(m, r.length), 0); const top = rows.slice(0, 40).map((r) => { const q = r.slice(); while (q.length < W) q.push(''); return q.map((c) => (c === undefined ? '' : c)); });
-  const hi = top.findIndex((r) => r.some((c) => /^etablissements$/i.test(String(c).trim())) && r.filter((c) => c !== '').length >= 5);
+  const hi = top.findIndex((r) => r.some((c) => /^(etablissements|reg|dep)$/i.test(String(c).trim())) && r.filter((c) => c !== "").length >= 5);
   let year = ''; if (hi > 0) { const m = top.slice(0, hi).map((r) => String(r[0] || '')).join(' ').match(/mill[ée]sime\s*((?:19|20)\d\d)/i); if (m) year = m[1]; }
   const h0 = hi > 0 ? hi : 0; const hr = rows[h0] || []; const w = rows.slice(h0).reduce((m, r) => Math.max(m, r.length), 0); const cols = []; const seen = {};
   for (let j = 0; j < w; j++) { let v = hr[j] === undefined || hr[j] === '' ? '__EMPTY' : String(hr[j]); if (seen[v] !== undefined) { cols.push(v + '_' + (++seen[v])); } else { seen[v] = 0; cols.push(v); } }
@@ -22166,6 +22174,33 @@ function inseeTable(cols, data, ctx = {}, level = 'reg') {
   return { name: (ctx.name || '') + (level === 'dep' ? ' (départements)' : level === 'epci' ? ' (intercommunalités)' : ''), level, autTotal: aut && !has('nomjur1') && !has('ess_pub_pri'), dims, rows, nonESS: [...stat].some((x) => x !== 'ESS'), secteurs: new Set(rows.map((r) => r.secteur)), typ: typ ? typ.slice(-1).toUpperCase() : '', year: ctx.year || '' };
 }
 
+// --- Tableaux de postes « larges » (FLORES 8 : région × typologie × sexe × CS ; colonnes ESS / PUBLIC / PRIVE) -----------------
+const pwDetect = (cols) => { const l = cols.map((c) => String(c).toLowerCase()); return l.includes('sexe') && (l.includes('cs') || l.includes('csp')) && l.includes('ess') && l.includes('public') && l.includes('prive') && (l.includes('reg') || l.includes('dep')); };
+function pwTable(cols, data, ctx = {}) {
+  const lc = Object.fromEntries(cols.map((c) => [String(c).toLowerCase(), c])); const has = (k) => lc[k] !== undefined; const g = (r, k) => String(r[lc[k]] ?? '').trim(); const isTot = (v) => /^total$/i.test(v);
+  const geoK = has('reg') ? 'reg' : 'dep'; const typ = ['typologie_a', 'typologie_b', 'typologie_c'].find(has); const csK = has('csp') ? 'csp' : 'cs'; const hasD = !!typ && has(typ + '_d');
+  const key = (r) => [g(r, geoK), typ ? g(r, typ) : '', g(r, 'sexe'), g(r, csK)].join('|'); const hasCode = new Set(); if (hasD) for (const r of data) if (g(r, typ) === g(r, typ + '_d')) hasCode.add(key(r));
+  const MEAS = [['ess', 'ESS'], ['public', 'Public'], ['prive', 'Privé hors ESS']]; const cand = [];
+  for (const r of data) {
+    const gv = g(r, geoK); if (!gv || isTot(gv)) continue;
+    let totSec = false; if (typ) { const t = g(r, typ); const d = hasD ? g(r, typ + '_d') : t; if (isTot(t)) totSec = true; else if (hasD && d !== t && !(isTot(d) && !hasCode.has(key(r)))) continue; }
+    const sx = g(r, 'sexe'); const cs = g(r, csK); const sT = isTot(sx); const cT = isTot(cs);
+    for (const [m, statut] of MEAS) {
+      const sc = lc['secret_' + m]; const secret = sc !== undefined && /^s$/i.test(String(r[sc] ?? '').trim());
+      const o = { t: ctx.year || '', famille: null, statut, secteur: typ && !totSec ? secFmt(String(r[lc['lib_' + typ]] || g(r, typ)).trim()) : 'Ensemble', geo1: geoK === 'reg' ? terrNameOf(String(r[lc.lib_reg] || gv).trim()) : (DEP_REG[gv] ? terrNameOf(DEP_REG[gv]) : ''), geo2: geoK === 'dep' ? terrNameOf(String(r[lc.lib_dep] || gv).trim()) : '', geo3: '', cj: '', ape: '', id: '', nom: '', creation: null, ferme: false, flag: false, fem: 0, cdi: 0, taille: null, w: 0, eff: secret ? 0 : num(r[lc[m]]), etp: 0, ms: 0, po: 0, _s: secret ? { eff: true } : {}, _tot: { secteur: totSec, sexe: sT, csp: cT } };
+      o.sexe = sT ? 'Total' : String(r[lc.lib_sexe] || sx).trim(); o.csp = cT ? 'Total' : String(r[lc['lib_' + csK]] || cs).trim(); cand.push(o);
+    }
+  }
+  for (const X of ['secteur', 'sexe', 'csp']) { // reconstitution des cases secrètes à partir des totaux publiés
+    const others = ['secteur', 'sexe', 'csp'].filter((d) => d !== X); const groups = new Map();
+    for (const o of cand) { const k = JSON.stringify([o.geo1, o.geo2, o.statut, ...others.map((d) => (o._tot[d] ? '#T' : o[d]))]); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(o); }
+    for (const list of groups.values()) { const tot = list.find((o) => o._tot[X]); const lv = list.filter((o) => !o._tot[X]); if (!tot || !lv.length || tot._s.eff) continue; const sl = lv.filter((o) => o._s.eff); if (!sl.length) continue; const known = lv.reduce((a, o) => a + (o._s.eff ? 0 : o.eff), 0); for (const o of sl) o.eff = Math.round(Math.max(0, tot.eff - known) / sl.length); }
+  }
+  const rows = cand.filter((o) => !Object.values(o._tot).some(Boolean)); for (const o of rows) { o.sec = Object.keys(o._s).length > 0; o.mx = o.eff; delete o._s; delete o._tot; }
+  if (!rows.length) return { skip: 'aucune ligne exploitable' };
+  return { name: ctx.name || '', level: geoK === 'dep' ? 'dep' : 'reg', autTotal: false, dims: [geoK === 'dep' ? 'geo2' : 'geo1', ...(geoK === 'dep' ? ['geo1'] : []), 'temps', ...(typ ? ['secteur'] : []), 'sexe', 'csp', 'statut'].filter((d, i, a) => a.indexOf(d) === i), rows, nonESS: true, secteurs: new Set(rows.map((r) => r.secteur)), typ: typ ? typ.slice(-1).toUpperCase() : '', year: ctx.year || '' };
+}
+
 // --- Format « tableau croisé » (TC) : territoire × typologie × croisement, mesure en nombre de postes (nbpost) ---------
 const DEP_BYNAME = (() => { const m = new Map(); for (const x of "Ain 01|Aisne 02|Allier 03|Alpes-de-Haute-Provence 04|Hautes-Alpes 05|Alpes-Maritimes 06|Ardèche 07|Ardennes 08|Ariège 09|Aube 10|Aude 11|Aveyron 12|Bouches-du-Rhône 13|Calvados 14|Cantal 15|Charente 16|Charente-Maritime 17|Cher 18|Corrèze 19|Corse-du-Sud 2A|Haute-Corse 2B|Côte-d'Or 21|Côtes-d'Armor 22|Creuse 23|Dordogne 24|Doubs 25|Drôme 26|Eure 27|Eure-et-Loir 28|Finistère 29|Gard 30|Haute-Garonne 31|Gers 32|Gironde 33|Hérault 34|Ille-et-Vilaine 35|Indre 36|Indre-et-Loire 37|Isère 38|Jura 39|Landes 40|Loir-et-Cher 41|Loire 42|Haute-Loire 43|Loire-Atlantique 44|Loiret 45|Lot 46|Lot-et-Garonne 47|Lozère 48|Maine-et-Loire 49|Manche 50|Marne 51|Haute-Marne 52|Mayenne 53|Meurthe-et-Moselle 54|Meuse 55|Morbihan 56|Moselle 57|Nièvre 58|Nord 59|Oise 60|Orne 61|Pas-de-Calais 62|Puy-de-Dôme 63|Pyrénées-Atlantiques 64|Hautes-Pyrénées 65|Pyrénées-Orientales 66|Bas-Rhin 67|Haut-Rhin 68|Rhône 69|Haute-Saône 70|Saône-et-Loire 71|Sarthe 72|Savoie 73|Haute-Savoie 74|Paris 75|Seine-Maritime 76|Seine-et-Marne 77|Yvelines 78|Deux-Sèvres 79|Somme 80|Tarn 81|Tarn-et-Garonne 82|Var 83|Vaucluse 84|Vendée 85|Vienne 86|Haute-Vienne 87|Vosges 88|Yonne 89|Territoire de Belfort 90|Essonne 91|Hauts-de-Seine 92|Seine-Saint-Denis 93|Val-de-Marne 94|Val-d'Oise 95|Guadeloupe 971|Martinique 972|Guyane 973|La Réunion 974|Mayotte 976".split('|')) { const i = x.lastIndexOf(' '); m.set(normKey(x.slice(0, i)), x.slice(i + 1)); } return m; })();
 const REG_CANON = ['Auvergne-Rhône-Alpes', 'Bourgogne-Franche-Comté', 'Bretagne', 'Centre-Val de Loire', 'Corse', 'Grand Est', 'Guadeloupe', 'Guyane', 'Hauts-de-France', 'Île-de-France', 'La Réunion', 'Martinique', 'Mayotte', 'Normandie', 'Nouvelle-Aquitaine', 'Occitanie', 'Pays de la Loire', "Provence-Alpes-Côte d'Azur"].map((n) => [normKey(n), n]);
@@ -22237,7 +22272,7 @@ function renderTablesPanel(ign = [], refMsg = '') {
   const cb = $('cacheClear'); if (cb) cb.onclick = async () => { await cClear(); cb.textContent = 'Mémoire locale vidée'; };
 }
 // --- Cache local des fichiers déjà lus (IndexedDB) : un fichier inchangé n'est ni téléchargé ni relu -----------------
-const CACHE_VER = '13';
+const CACHE_VER = '15';
 const cdb = () => new Promise((res, rej) => { const o = indexedDB.open('ess_cache', 1); o.onupgradeneeded = () => o.result.createObjectStore('u'); o.onerror = () => rej(o.error); o.onsuccess = () => res(o.result); });
 async function cGet(k) { try { const db = await cdb(); return await new Promise((res) => { const r = db.transaction('u').objectStore('u').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); } catch { return null; } }
 async function cPut(k, v) { try { const db = await cdb(); await new Promise((res) => { const t = db.transaction('u', 'readwrite'); t.objectStore('u').put(v, k); t.oncomplete = res; t.onerror = res; t.onabort = res; }); } catch { /* cache indisponible */ } }
@@ -22252,8 +22287,9 @@ const CMD_THEMES = [['sexe', 'Indicateurs genrés (femmes / hommes)'], ['csp', '
 const CMD_LV = { dep: 'départements', reg: 'régions', fr: 'France', epci: 'EPCI / EPT', ze: 'zones d’emploi', ville: 'villes > 100 000 hab.', commune: 'communes' };
 /** État d'un tableau de la commande dans le dossier : 'ok' (lu), 'ko' (fichier présent mais non lu : raison) ou 'absent'. */
 function cmdFileStatus(code, year) {
-  if ((state.loadedCodes || []).some((l) => l.year === year && l.code === code)) return { st: 'ok' };
-  const d = (state.diag || []).find((x) => codeOfName(String(x[0]).split('/').pop()) === code && (yearOfPath(x[0]) === year || String(x[1]).includes(year)) && !/commande/.test(x[1]));
+  const base = (code.match(/^(FLORES_\d+)_[ABC]$/) || [])[1]; // un tableau unique « FLORES_8 » couvre 8_a, 8_b et 8_c (colonnes ESS / PUBLIC / PRIVE)
+  if ((state.loadedCodes || []).some((l) => l.year === year && (l.code === code || (base && l.code === base)))) return { st: 'ok' };
+  const d = (state.diag || []).find((x) => [code, base].includes(codeOfName(String(x[0]).split('/').pop())) && (yearOfPath(x[0]) === year || String(x[1]).includes(year)) && !/commande/.test(x[1]));
   return d ? { st: 'ko', file: String(d[0]).split('/').pop(), why: [d[1], d[2]].filter(Boolean).join(' — ') } : { st: 'absent' };
 }
 /** Ce que permet la commande d'un millésime, par thème : tableaux concernés, niveau géographique, chargés ou non. */
@@ -22342,9 +22378,16 @@ function convertSd(sd, it) {
   if (ins && !ins.unsupported && ins.geo === 'régions') { const fl = floresConvert(ins.cols, ins.data, year); return fl ? { kind: 'base', year, cols: fl.cols, data: fl.data } : { kind: 'ign', why: 'tableau de base non convertible' }; }
   const tables = []; const why = [];
   if (tcDetect(sd.cols) && !tcExtras(sd.cols).length && sd.cols.some((c) => /^reg$/i.test(c)) && sd.cols.some((c) => /^lib_social_dom$/i.test(c))) { const fl = floresConvert(sd.cols, sd.data, year); if (fl) return { kind: 'base', year, cols: fl.cols, data: fl.data }; }
+  if (ursDetect(sd.cols)) return ursConvert(sd, it);
+  if (pwDetect(sd.cols)) { const t = pwTable(sd.cols, sd.data, { year, name: (it.path || it.name).split('/').pop() }); return t && !t.skip ? { kind: 'tables', year, tables: [t] } : { kind: 'ign', why: (t && t.skip) || 'non reconnu' }; }
   if (tcDetect(sd.cols)) { const t = tcTable(sd.cols, sd.data, { year, name: (it.path || it.name).split('/').pop() }); return t && !t.skip ? { kind: 'tables', year, tables: [t] } : { kind: 'ign', why: (t && t.skip) || 'non reconnu' }; }
   for (const lv of ['reg', 'dep', 'epci']) { const t = inseeTable(sd.cols, sd.data, { year, name: (it.path || it.name).split('/').pop() }, lv); if (t && !t.skip) tables.push(t); else if (t) why.push(t.skip); }
   return tables.length ? { kind: 'tables', year, tables } : { kind: 'ign', why: why.filter((w) => !/^pas de niveau/.test(w))[0] || why[0] || 'non reconnu' };
+}
+/** Séries Acoss-Urssaf déposées hors d'un groupe de millésimes : lecture dédiée (n'écrase pas les données FLORES). */
+async function loadUrs(items) {
+  for (const it of items) { const u = await loadUnit(it, 'urs'); if (u.kind === 'urs') { ursSet(u); cPut('URS', u); const d = (state.diag || []).filter((x) => x[0] !== (it.path || it.name)); d.push([it.path || it.name, 'séries Urssaf', fInt(u.rows.length) + ' séries · ' + u.times[0] + ' à ' + u.times.at(-1)]); state.diag = d; return u; } }
+  return null;
 }
 /** Lit un fichier et le transforme en « unité » : tableau de base d'un millésime, tableaux croisés, référentiel ou rejet. */
 const PERF = { net: 0, cpu: 0, kb: 0 };
@@ -22367,11 +22410,11 @@ async function loadUnit(it, refSig) {
     if (!/\.(xlsx|xls|xlsm)$/i.test(it.name)) return { kind: 'ign', why: 'format non INSEE' };
     const tn = performance.now(); const file = it.file || await it.getFile(); const buf = await file.arrayBuffer(); PERF.net += performance.now() - tn; PERF.kb += buf.byteLength / 1024; const tp = performance.now();
     try { return await (async () => {
-    if (!isCmdName(it) && !isRefName(it)) { try { const fx = await fastXlsx(buf); let sd = null; for (let i = 0; i < fx.names.length && !sd; i++) { const x = sheetDataRows(await fx.rows(i)); if (x.cols.some((c) => /^etablissements$/i.test(String(c))) || (postesCol(x.cols) && x.cols.some((c) => /^(reg|dep)$/i.test(String(c)))) || tcDetect(x.cols)) sd = x; } return sd ? convertSd(sd, it) : { kind: 'ign', why: 'tableau INSEE non reconnu' }; } catch (e) { console.warn('lecteur rapide indisponible, repli SheetJS', e); } }
+    if (!isCmdName(it) && !isRefName(it)) { try { const fx = await fastXlsx(buf); let sd = null; for (let i = 0; i < fx.names.length && !sd; i++) { const x = sheetDataRows(await fx.rows(i)); if (x.cols.some((c) => /^etablissements$/i.test(String(c))) || (postesCol(x.cols) && x.cols.some((c) => /^(reg|dep)$/i.test(String(c)))) || pwDetect(x.cols) || tcDetect(x.cols) || ursDetect(x.cols)) sd = x; } return sd ? convertSd(sd, it) : { kind: 'ign', why: 'tableau INSEE non reconnu' }; } catch (e) { console.warn('lecteur rapide indisponible, repli SheetJS', e); } }
     const wb = XLSX.read(buf, { type: 'array', dense: true, cellStyles: false, cellNF: false, cellText: false });
     if (isCmdName(it)) { const cm = parseCommande(wb, it.name, it.path); return cm ? { kind: 'cmd', ...cm } : { kind: 'ign', why: 'fichier de commande non reconnu' }; }
     if (isRefName(it)) { const gr = geoRefFromWb(wb); if (gr) return { kind: 'ref', entries: [...gr] }; }
-    let sd = null; for (const n of wb.SheetNames) { const x = sheetData(wb.Sheets[n]); if (x.cols.some((c) => /^etablissements$/i.test(String(c))) || (postesCol(x.cols) && x.cols.some((c) => /^(reg|dep)$/i.test(String(c)))) || tcDetect(x.cols)) { sd = x; break; } }
+    let sd = null; for (const n of wb.SheetNames) { const x = sheetData(wb.Sheets[n]); if (x.cols.some((c) => /^etablissements$/i.test(String(c))) || (postesCol(x.cols) && x.cols.some((c) => /^(reg|dep)$/i.test(String(c)))) || pwDetect(x.cols) || tcDetect(x.cols) || ursDetect(x.cols)) { sd = x; break; } }
     if (!sd) return { kind: 'ign', why: 'tableau INSEE non reconnu' };
     return convertSd(sd, it);
     })(); } finally { PERF.cpu += performance.now() - tp; }
@@ -22412,12 +22455,14 @@ async function loadTables(items, ctx = {}) {
   for (const it of refs) { const u = await loadUnit(it, 'ref'); done++; if (u.cached) hits++; if (u.kind === 'ref') { state.geoRef = new Map(u.entries); refMsg = `${it.name} : ${fInt(u.entries.length)} intercommunalités rattachées à leur région`; } tick(); }
   const refSig = state.geoRef ? 'g' + state.geoRef.size : 'g0';
   const units = await pool(data, 6, async (it) => { try { const u = await loadUnit(it, refSig); done++; if (u.cached) hits++; tick(); return [it, u]; } catch (e) { done++; tick(); return [it, { kind: 'ign', why: 'fichier illisible (' + String(e.message || e).slice(0, 60) + ')' }]; } });
+  { const uu = units.filter(([, u]) => u.kind === 'urs'); if (uu.length) { const best = uu.map(([, u]) => u).sort((x, y) => y.times.length - x.times.length)[0]; ursSet(best); cPut('URS', best); } }
   progSet('Assemblage des millésimes et des croisements…', 0.94);
   await new Promise((r) => setTimeout(r, 0));
   // Assemblage : un tableau de base par millésime (fusionnés), tableaux croisés fusionnés d'un millésime à l'autre
   const byYear = new Map(); const merged = new Map();
   for (const [it, u] of units) {
     if (u.kind === 'ign') { ign.push([it.name, u.why]); continue; }
+    if (u.kind === 'urs') continue;
     { const cd = codeOfName(it.name); if (cd) { if (u.kind === 'base') state.loadedCodes.push({ year: u.year, code: cd, level: 'reg' }); else for (const t of u.tables || []) state.loadedCodes.push({ year: t.year || u.year, code: cd, level: t.level || 'reg' }); } }
     if (u.kind === 'base') { if (!byYear.has(u.year)) byYear.set(u.year, { it, u }); else ign.push([it.name, 'doublon du tableau de base ' + u.year]); continue; }
     for (const t of u.tables || []) {
@@ -22425,6 +22470,7 @@ async function loadTables(items, ctx = {}) {
       if (!m) merged.set(k, { ...t, years: new Set([t.year]), name: t.name }); else { m.rows = m.rows.concat(t.rows); m.years.add(t.year); m.nonESS = m.nonESS || t.nonESS; for (const x of t.secteurs) m.secteurs.add(x); for (const d of t.dims) if (!m.dims.includes(d)) m.dims.push(d); }
     }
   }
+  if (!byYear.size && state.urs && units.some(([, u]) => u.kind === 'urs')) { progEnd('Séries Urssaf chargées'); msg.innerHTML = `<div class="msg ok">Séries trimestrielles Acoss-Urssaf lues : ${state.urs.times[0]} à ${state.urs.times.at(-1)}, ${fInt(state.urs.rows.length)} séries. Elles alimentent l’onglet « Conjoncture » et l’assistant.</div>`; state.diag = (state.diag || []).filter((d) => d[1] !== 'séries Urssaf').concat(units.filter(([, u]) => u.kind === 'urs').map(([it, u]) => [it.path || it.name, 'séries Urssaf', fInt(u.rows.length) + ' séries · ' + u.times[0] + ' à ' + u.times.at(-1)])); return; }
   if (!byYear.size) { progEnd('Aucun tableau de base trouvé'); msg.innerHTML = '<div class="msg warn">Aucun tableau « territoire × famille juridique × typologie sectorielle » parmi les fichiers : il sert de base à l’analyse (par exemple le tableau FLORES_6 pour les régions).</div>'; state.tables = []; renderTablesPanel(ign, refMsg); return; }
   const ys = [...byYear.keys()].sort(); for (const l of state.loadedCodes) if (!l.year) l.year = ys.at(-1);
   const first = byYear.get(ys[0]).u; const rows = [];
@@ -22432,7 +22478,7 @@ async function loadTables(items, ctx = {}) {
   state.tables = [...merged.values()].map((t) => ({ ...t, name: t.name + ([...t.years].filter(Boolean).length > 1 ? ' (' + [...t.years].sort().join(', ') + ')' : '') }));
   state.fileName = (ctx.label || 'Données') + (ys.length > 1 ? ` · ${ys[0]}–${ys.at(-1)}` : ' · ' + ys[0]); state.wb = null; $('sheetRow').hidden = true;
   if ($('millesime')) $('millesime').value = ys.at(-1);
-  const diag = units.map(([it, u]) => [it.path || it.name, u.kind === 'ign' ? 'ignoré' : u.kind === 'base' ? 'base ' + (u.year || '?') : u.kind === 'ref' ? 'référentiel' : 'tableau ' + [...new Set((u.tables || []).map((t) => t.year || u.year))].filter(Boolean).join('/'), u.kind === 'ign' ? u.why : (u.tables ? u.tables.reduce((a, t) => a + t.rows.length, 0) : (u.data ? u.data.length : 0)) + ' lignes']);
+  const diag = units.map(([it, u]) => [it.path || it.name, u.kind === 'ign' ? 'ignoré' : u.kind === 'base' ? 'base ' + (u.year || '?') : u.kind === 'ref' ? 'référentiel' : u.kind === 'urs' ? 'séries Urssaf' : 'tableau ' + [...new Set((u.tables || []).map((t) => t.year || u.year))].filter(Boolean).join('/'), u.kind === 'ign' ? u.why : (u.tables ? u.tables.reduce((a, t) => a + t.rows.length, 0) : (u.data ? u.data.length : 0)) + ' lignes']);
   for (const it of cmds) diag.push([it.path || it.name, 'commande', '']);
   state.diag = diag;
   setRaw(first.cols, rows); applyMapping(); renderTablesPanel(ign, refMsg);
@@ -22603,6 +22649,8 @@ function qualityReport() {
 // ======================================================================
 // 6. Moteur de calcul
 // ======================================================================
+/** Rémunération moyenne. FLORES : masse salariale annuelle / ETP uniquement (pas de ratio entre effectifs de fin d'année et masse salariale annuelle, cf. fiche méthodologique Insee) ; séries Urssaf (trimestrielles) : salaire moyen par tête = masse salariale / effectifs de la période. */
+const remMoy = (a) => (a && a.ms > 0 ? (a.etp > 0 ? a.ms / a.etp : state.timeType === 'trimestre' && a.eff > 0 ? a.ms / a.eff : null) : null);
 function agg(rows) {
   const a = { etab: 0, eff: 0, etp: 0, ms: 0, fem: 0, cdi: 0, po: 0, max: 0, n: 0, sec: 0 };
   for (const r of rows) { a.etab += r.w; a.eff += r.eff; a.etp += r.etp; a.ms += r.ms; a.fem += r.fem; a.cdi += r.cdi; a.po += r.po || 0; const m = r.mx ?? r.eff; if (m > a.max) a.max = m; if (r.sec) a.sec++; a.n++; }
@@ -22657,7 +22705,7 @@ function essParDim(rows, dim) {
     totE, totAll,
     lines: keys.map((k) => {
       const a = g.get(k); const all = dim === 'famille' ? totAll : gt.get(k); const pv = dim === 'famille' ? agg(rows.filter((r) => r.statut !== 'Public')) : gp.get(k);
-      return { k, a, sec: isSecret(a), poids: pct(a.eff, all?.eff), poidsPriv: pct(a.eff, pv?.eff), part: pct(a.eff, totE.eff), rem: a.etp > 0 ? a.ms / a.etp : a.eff > 0 ? a.ms / a.eff : null };
+      return { k, a, sec: isSecret(a), poids: pct(a.eff, all?.eff), poidsPriv: pct(a.eff, pv?.eff), part: pct(a.eff, totE.eff), rem: remMoy(a) };
     }),
   };
 }
@@ -22863,7 +22911,7 @@ function runExplorer() {
     switch (ind) {
       case 'eff': return a.eff; case 'etab': return a.etab; case 'etp': return a.etp; case 'ms': return a.ms;
       case 'poids': return pct(a.eff, base?.eff); case 'poidsPriv': return pct(a.eff, (dim === 'famille' ? agg(all.filter((r) => r.statut !== 'Public')) : gPriv.get(k))?.eff);
-      case 'part': return pct(a.eff, tot.eff); case 'rem': return a.etp > 0 ? a.ms / a.etp : a.eff ? a.ms / a.eff : null;
+      case 'part': return pct(a.eff, tot.eff); case 'rem': return remMoy(a);
       case 'fem': return pct(a.fem, a.eff); case 'cdi': return pct(a.cdi, a.eff);
       case 'evol': { const p = gPrev.get(k); return p ? pct(a.eff - p.eff, p.eff) : null; }
     }
@@ -23340,8 +23388,9 @@ function showView(v) {
   if (v === 'tableau' && state.rows.length) setTimeout(renderDashboard, 0);
   if (v === 'methodes' && window.ESS.renderMethodes) window.ESS.renderMethodes();
   if (v === 'fiches' && window.ESS.renderFiches) window.ESS.renderFiches();
+  if (v === 'conjoncture' && window.ESS.renderConjoncture) window.ESS.renderConjoncture();
   if (v === 'biblio' && window.ESS.renderBiblio) { window.ESS.renderBiblio(); window.ESS.renderIndic(); }
-  if (!['donnees', 'parametres', 'aide', 'accueil', 'expert', 'contexte', 'annuaire', 'methodes', 'biblio', 'fiches'].includes(v) && !state.rows.length) { const sec = $('v-' + v); if (!sec.querySelector('.nodata')) sec.insertAdjacentHTML('afterbegin', '<div class="msg warn nodata">Chargez d’abord un fichier dans l’onglet « Données ».</div>'); }
+  if (!['donnees', 'parametres', 'aide', 'accueil', 'expert', 'contexte', 'annuaire', 'methodes', 'biblio', 'fiches', 'conjoncture'].includes(v) && !state.rows.length) { const sec = $('v-' + v); if (!sec.querySelector('.nodata')) sec.insertAdjacentHTML('afterbegin', '<div class="msg warn nodata">Chargez d’abord un fichier dans l’onglet « Données ».</div>'); }
   else document.querySelectorAll('.nodata').forEach((n) => n.remove());
 }
 function init() {
@@ -23679,7 +23728,7 @@ function comparatif(t, level, t0) {
   const line = (rows, rowsPrev, rows0) => {
     const c = cles(rows); const fam = essParDim(rows, 'famille'); const as = fam.lines.find((l) => l.k === 'Associations');
     const cp = rowsPrev ? cles(rowsPrev) : null; const c0 = rows0 ? cles(rows0) : null; const yrs = t0 ? yearsBetween(t0, t) : 0;
-    return { c, sec: isSecret(c.ess), partAssoc: as ? as.part : null, fem: pct(c.ess.fem, c.ess.eff), rem: c.ess.etp ? c.ess.ms / c.ess.etp : c.ess.eff ? c.ess.ms / c.ess.eff : null,
+    return { c, sec: isSecret(c.ess), partAssoc: as ? as.part : null, fem: pct(c.ess.fem, c.ess.eff), rem: remMoy(c.ess),
       ev1: cp ? pct(c.ess.eff - cp.ess.eff, cp.ess.eff) : null, ev0: c0 && t0 !== t ? pct(c.ess.eff - c0.ess.eff, c0.ess.eff) : null, tc: c0 && yrs > 0 ? tcam(c0.ess.eff, c.ess.eff, yrs) : null };
   };
   const lines = keys.map((k) => ({ k, ...line(filt({ t, geoLevel: level, geoValue: k }), hasPrev ? filt({ t: prev, geoLevel: level, geoValue: k }) : null, t0 ? filt({ t: t0, geoLevel: level, geoValue: k }) : null) }));
@@ -24152,11 +24201,19 @@ function iaSystemPrompt() {
   return `Tu es l’Expert ESS de ${S.structure} : un statisticien-économiste de très haut niveau, spécialiste de l’économie sociale et solidaire (ESS), de l’emploi et des économies ultramarines (Guadeloupe, Martinique, Guyane, La Réunion, Mayotte, Saint-Martin, Saint-Barthélemy, Saint-Pierre-et-Miquelon, et collectivités du Pacifique) comme de l’Hexagone. Tu es le pilier de l’observatoire : rigueur absolue, sources fiables, expression claire. Date du jour : ${new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}.
 
 PÉRIMÈTRE ACTUEL DU PROJET
-Pour le moment, l’observatoire travaille uniquement avec les données FLORES. Ne propose ni données de conjoncture (Urssaf, glissement annuel, indice trimestriel), ni liste des entreprises (Sirene), ni autre source, sauf si la personne le demande. Les publications du réseau (Panorama, etc.) peuvent mentionner ces sources : elles servent d’inspiration pour la structure, le vocabulaire et le choix des indicateurs, pas de promesse de données disponibles.
+Les données de référence sont FLORES ; les séries de conjoncture (Urssaf) s’ajoutent dès qu’elles sont chargées. Pour toute question de conjoncture (emplois, solde net, glissement annuel, salaire moyen par tête, par famille, secteur, région, département, Outre-mer) : appeler conjoncture_urssaf, jamais calculer_evolution sur FLORES. Les calculs d’évolution (taux d’accroissement, coefficient multiplicateur, TCAM, glissement annuel ou trimestriel, comparaison ESS / privé hors ESS) se font avec calculer_evolution, à toute échelle géographique, uniquement sur les séries Urssaf de la note de conjoncture, jamais sur FLORES. Ne propose pas la liste des entreprises (Sirene) ni d’autre source non chargée, sauf si la personne le demande. Les publications du réseau (Panorama, etc.) peuvent mentionner ces sources : elles servent d’inspiration pour la structure, le vocabulaire et le choix des indicateurs, pas de promesse de données disponibles.
 Avant de concevoir ou de générer un livrable, appelle modeles_livrables et consulter_publications pour t’inspirer de l’ensemble des documents du dossier des livrables, pas d’un seul : le Panorama n’est qu’un exemple parmi d’autres formats.
+
+SOURCES ET LIMITES (à appliquer dans toute réponse)
+- FLORES (Insee) : photographie annuelle de l’emploi salarié et des rémunérations, localisée jusqu’à la commune, tous employeurs (public, privé, particuliers employeurs, mis hors champ dans les commandes du réseau), hors Armées, hors Mayotte. Effectifs = postes présents la dernière semaine de décembre ; ETP et rémunérations brutes sont annuels : ne jamais faire de ratio entre les effectifs de fin d’année et la masse salariale annuelle (rémunération moyenne = masse salariale / ETP). Dégroupement automatique des effectifs entre siège et établissements : fluctuations locales notables en banque, assurance, santé, hébergement médico-social. Périmètre ESS révisé en 2021 (hors APE 84). Les formules d’évolution (taux d’accroissement, TCAM, glissement) ne s’appliquent PAS aux données FLORES.
+- Acoss-Urssaf (base Sequoia) : séries trimestrielles ; emplois salariés = salariés ayant un contrat au dernier jour du trimestre, chacun compte pour un, hors régime agricole (MSA, moins de 5 % de l’ESS) ; ce n’est ni un ETP ni un poste non annexe. C’est la seule source des évolutions (glissement annuel, solde net, TCAM) et du salaire moyen par tête, comparés au privé hors ESS et à l’inflation.
+- Mayotte n’est pas couverte par FLORES : le dire plutôt que de l’omettre en silence.
+- Sirene : répertoire des entreprises et établissements, base de la liste des entreprises de l’ESS (croisée avec le périmètre statistique).
+- Toujours nommer la source, son champ, son millésime ou sa période.
 
 RIGUEUR MÉTHODOLOGIQUE
 Pour proposer des indicateurs ou structurer une publication, appelle d’abord catalogue_indicateurs : il reprend ce que le réseau des CRESS publie (indicateurs, dénominateur, source, précautions, ligne « Sources », NS pour le secret statistique). Applique ces conventions dans les livrables.
+Évolutions (note de conjoncture, séries Urssaf uniquement) : taux d’accroissement = (final − initial) / initial ; coefficient = final / initial ; TCAM = (final / initial)^(1/n) − 1 avec n = nombre d’intervalles ; les taux successifs se combinent par produit des coefficients, jamais par addition ; pour plusieurs territoires on additionne les effectifs avant de calculer un taux ; toujours comparer l’ESS au privé hors ESS, donner le solde en volume avec le taux, et signaler un effet de champ. Utilise calculer_evolution plutôt que de calculer de tête.
 Les fichiers du dossier Paramètres et les fichiers de commande INSEE ne sont pas des données : ce sont les définitions et règles de fabrication des données. Avant de définir un terme, d’interpréter un code ou d’expliquer un périmètre, appelle consulter_parametres et cite le fichier source ; si rien n’est trouvé, dis-le au lieu d’improviser. Les publications du dossier Publications sont des références de comparaison et de structure : appelle consulter_publications pour savoir comment le réseau a traité un sujet, cite le document et la page, et ne recopie jamais de longs passages.
 
 IDENTITÉ INSTITUTIONNELLE ET MARQUE « ESS L’ÉCONOMIE EN MIEUX »
@@ -24238,6 +24295,9 @@ const IA_TOOLS = [
     run: (a) => { const ys = Object.keys(state.commandes || {}).sort(); if (!ys.length) return 'Aucun fichier de commande chargé.'; return (a.annee ? [a.annee] : ys).map((y) => 'Commande ' + y + ' :\n' + cmdCapaText(y, a.theme)).join('\n\n'); } },
   { name: 'passage_naf', description: 'Tableau de passage de la commande INSEE : donne, pour un code NAF (ex. 8810A, 88.10, 85) ou un mot du libellé, la section/division NA10-NA38 et la case de chaque typologie FLORES (département, région, France) où l’activité est classée.', schema: { type: 'object', properties: { code_ou_mot: { type: 'string' } }, required: ['code_ou_mot'] },
     run: (a) => { const r = nafLookup(a.code_ou_mot); if (!r) return 'Pas de tableau de passage NAF dans les commandes chargées.'; return r.hits.length ? 'Commande ' + r.year + ' :\n' + r.hits.join('\n') : 'Aucune activité trouvée.'; } },
+  { name: 'calculer_evolution', description: 'Calculs d’évolution, à toute échelle géographique (France entière, Outre-mer, région, département, intercommunalité, commune) : taux d’accroissement, solde, coefficient multiplicateur, taux de croissance annuel moyen (TCAM), glissement annuel ou trimestriel, comparaison ESS / privé hors ESS (écart en points, contribution), ventilation par famille, secteur ou territoire. mode=donnees calcule sur les données chargées (secret statistique appliqué) ; mode=valeurs sur deux valeurs données ; mode=enchainement combine des taux successifs (produit des coefficients) ; mode=inverse retrouve le taux total depuis un TCAM. À utiliser pour toute question d’évolution, de croissance, de dynamique ou de taux moyen.',
+    schema: { type: 'object', properties: { mode: { type: 'string', enum: ['donnees', 'valeurs', 'enchainement', 'inverse'] }, indicateur: { type: 'string', enum: ['effectifs', 'etablissements', 'etp', 'masse_salariale', 'remuneration_moyenne'] }, de: { type: 'string', description: 'période initiale' }, a: { type: 'string', description: 'période finale (défaut : la plus récente)' }, type: { type: 'string', enum: ['periode', 'glissement_annuel', 'glissement_trimestriel'], description: 'glissement : compare la période a à la même période un an avant, ou à la précédente' }, territoire_niveau: { type: 'string', enum: ['zone', 'geo1', 'geo2', 'geo3'], description: 'zone = France entière / Outre-mer / France hexagonale ; geo1 = région ; geo2 = département ; geo3 = intercommunalité' }, territoire: { type: 'string' }, famille: { type: 'string' }, secteur: { type: 'string' }, ventilation: { type: 'string', description: 'aucune (ESS vs privé hors ESS), famille, secteur, geo1, geo2, geo3, taille…' }, champ: { type: 'string', enum: ['ESS', 'Privé hors ESS', 'Public'], description: 'champ pour une ventilation (défaut ESS)' }, valeur_initiale: { type: 'number' }, valeur_finale: { type: 'number' }, nb_periodes: { type: 'number', description: 'nombre d’intervalles (années) entre les deux dates' }, taux: { type: 'array', items: { type: 'number' }, description: 'taux successifs en %' }, tcam: { type: 'number', description: 'TCAM en %' } } },
+    run: (a) => evolTool(a) },
   { name: 'consulter_publications', description: 'Interroge la bibliothèque de publications du réseau des CRESS, de l’Observatoire national de l’ESS et d’ESS France (dossier Publications). À utiliser pour situer une analyse par rapport à ce qui a été publié, voir quelles sources et quels indicateurs sont habituellement mobilisés, ou reprendre une structure de publication. Renvoie des extraits avec le document et la page. Ces textes sont des références : ne jamais les recopier longuement, les citer en les attribuant.', schema: { type: 'object', properties: { requete: { type: 'string', description: 'notion, indicateur ou question' }, source: { type: 'string', description: 'filtrer sur une source mobilisée (FLORES, Sirene, Urssaf / Acoss, Insee…)' } }, required: ['requete'] },
     run: (a) => { if (!state.pubs.length) return 'Aucune publication chargée (dossier « Publications » du dossier partagé).'; const r = pubSearch(a.requete || '', 8, a.source || ''); return r.length ? 'Extraits des publications :\n' + r.map(pubHitText).join('\n') : 'Aucun passage pertinent dans les publications (' + state.pubs.length + ' documents indexés).'; } },
   { name: 'catalogue_indicateurs', description: 'Catalogue des indicateurs de référence utilisés par le réseau des CRESS et ORESS (nombre d’entreprises, familles, emploi et poids, part des femmes par CSP, masse salariale, secteurs, taille, conjoncture, contribution, croissance par secteur, renouvellement) avec leur calcul, l’outil à utiliser, la source, un exemple publié et les précautions ; et les conventions d’exploitation (plan d’une fiche territoire, ligne de sources, NS). À consulter avant de proposer une analyse ou une publication.', schema: { type: 'object', properties: { theme: { type: 'string', description: 'mot-clé pour filtrer (emploi, femmes, secteur, conjoncture…)' } } },
@@ -24335,7 +24395,7 @@ function iaAvance(a) {
 }
 function iaEconometrie(a) {
   needData(); const out = { avertissements: [] };
-  const val = (c, k) => ({ effectifs: c.ess.eff, etablissements: c.ess.etab, poids_emploi_prive: c.poidsPriv, remuneration_moyenne: c.ess.etp ? c.ess.ms / c.ess.etp : c.ess.eff ? c.ess.ms / c.ess.eff : null, part_femmes: c.ess.eff && state.map.femmes ? c.ess.fem / c.ess.eff * 100 : null, taille_moyenne: c.ess.etab ? c.ess.eff / c.ess.etab : null }[k]);
+  const val = (c, k) => ({ effectifs: c.ess.eff, etablissements: c.ess.etab, poids_emploi_prive: c.poidsPriv, remuneration_moyenne: remMoy(c.ess), part_femmes: c.ess.eff && state.map.femmes ? c.ess.fem / c.ess.eff * 100 : null, taille_moyenne: c.ess.etab ? c.ess.eff / c.ess.etab : null }[k]);
   if (a.mode === 'tendance') {
     const k = a.y || 'effectifs'; const g = a.territoire ? { geoLevel: 'geo1', geoValue: a.territoire } : {}; const pts = [];
     for (const t of state.times) { if (!/^\d{4}$/.test(t)) continue; const c = cles(filt({ t, ...g, secteur: a.secteur || '', famille: a.famille || '' })); if (!c.ess.n || isSecret(c.ess)) continue; const v = val(c, k); if (v != null) pts.push([+t, v]); }
@@ -24369,7 +24429,7 @@ function iaCalculer(a) {
   const lines = [...g.entries()].map(([k, x]) => {
     const base = dim === 'famille' || !dim ? totAll : gAll.get(k); const bp = dim === 'famille' || !dim ? totPriv : gPriv.get(k); const p = gPrev.get(k); const sec = isSecret(x);
     const o = { [dim || 'champ']: k, etablissements: x.etab, effectifs: x.eff, poids_emploi_pct: pct(x.eff, base?.eff), poids_emploi_prive_pct: pct(x.eff, bp?.eff), part_du_champ_pct: pct(x.eff, tot.eff),
-      etp: x.etp || undefined, masse_salariale: x.ms || undefined, remuneration_moyenne: x.ms ? (x.etp ? x.ms / x.etp : x.eff ? x.ms / x.eff : undefined) : undefined, part_femmes_pct: state.map.femmes ? pct(x.fem, x.eff) : undefined, part_cdi_pct: state.map.cdi ? pct(x.cdi, x.eff) : undefined,
+      etp: x.etp || undefined, masse_salariale: x.ms || undefined, remuneration_moyenne: x.ms ? (remMoy(x) ?? undefined) : undefined, part_femmes_pct: state.map.femmes ? pct(x.fem, x.eff) : undefined, part_cdi_pct: state.map.cdi ? pct(x.cdi, x.eff) : undefined,
       evolution_1an_pct: p ? pct(x.eff - p.eff, p.eff) : undefined, solde_1an: p ? x.eff - p.eff : undefined };
     for (const kk of Object.keys(o)) if (typeof o[kk] === 'number') o[kk] = Math.round(o[kk] * 10) / 10;
     if (sec && IA.scope !== 'tout') { for (const kk of Object.keys(o)) if (kk !== (dim || 'champ')) o[kk] = S.secretLabel || 's'; } else if (sec) o.sous_secret = true;
@@ -24409,8 +24469,11 @@ function iaPublication(a) {
 // ----------------------------------------------------------------------
 const toolSchemasAnthropic = () => [...IA_TOOLS.map((t) => ({ name: t.name, description: t.description, input_schema: t.schema })), ...(IA.web === '1' ? [{ type: 'web_search_20250305', name: 'web_search', max_uses: 8 }] : [])];
 const toolSchemasOpenAI = () => IA_TOOLS.map((t) => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.schema } }));
+const EVOL_REFUS = 'Évolution non calculée : les données chargées sont FLORES (Insee), une photographie annuelle de l’emploi salarié. Les taux d’accroissement, TCAM, glissements et indices d’évolution ne s’appliquent qu’aux séries de la note de conjoncture (Acoss-Urssaf, trimestrielles ; outil conjoncture_urssaf si elles sont chargées) : d’un millésime Flores à l’autre, le champ, les traitements de dégroupement des effectifs entre siège et établissements et la source déclarative (DADS puis DSN) varient, ce qui fausse les évolutions locales. Présente la structure de l’année (niveaux, parts, comparaisons entre territoires) et dis que l’évolution se traite avec les données Urssaf, à charger dans le dossier Data.';
+const evolBloquee = (name, a) => state.timeType !== 'trimestre' && (name === 'analyser_dynamiques' || (name === 'calculer' && a.indicateur === 'evolution_1an') || (name === 'indicateurs_avances' && a.indicateur === 'indice_base_100') || (name === 'tendance_et_regression' && a.mode === 'tendance') || (name === 'calculer_evolution' && (a.mode || 'donnees') === 'donnees'));
 function runTool(name, args) {
   const t = IA_TOOLS.find((x) => x.name === name); if (!t) return `Outil inconnu : ${name}`;
+  if (state.rows.length && evolBloquee(name, args || {})) return EVOL_REFUS;
   try { const r = String(t.run(args || {})); return r.length > 40000 ? r.slice(0, 40000) + '\n[… résultat tronqué]' : r; } catch (e) { return `ERREUR : ${e.message}`; }
 }
 async function postJSON(url, headers, body) {
@@ -25104,7 +25167,10 @@ const INDIC_REF = [
   { id: 'masse_salariale', nom: 'Masse salariale brute annuelle et rémunération moyenne', formule: 'Somme des salaires bruts ; rémunération moyenne = masse salariale / ETP.', outil: 'calculer(masse_salariale) · calculer(remuneration_moyenne) · calculer(etp)', source: 'FLORES', exemple: 'Guadeloupe : 333 M€ de masse salariale brute annuelle ; Mayotte : 30 M€.', precaution: 'Brut, en euros courants : pour comparer dans le temps, corriger de l’inflation.' },
   { id: 'secteurs', nom: 'Répartition des salariés par secteur d’activité', formule: 'Part de chaque grand secteur (hébergement médico-social, enseignement, santé, sport et loisirs…) dans les salariés ESS.', outil: 'calculer(repartition, ventilation=secteur) · indicateurs_avances (concentration HHI, spécificité)', source: 'FLORES, regroupement des codes APE', exemple: 'Guadeloupe : 42 % dans l’hébergement et le médico-social, 15 % non classés, 13 % enseignement.', precaution: 'Une forte part « non classé » limite la lecture sectorielle ; l’indiquer.' },
   { id: 'taille', nom: 'Répartition des établissements selon leur taille', formule: 'Part des établissements de moins de 10, de 10 à 49, de 50 à 249 salariés (et plus).', outil: 'calculer(repartition, ventilation=taille)', source: 'FLORES (tranches d’effectif)', exemple: 'Guadeloupe : 71 % des entreprises ont moins de 10 salariés, 25 % de 10 à 49, 4 % de 50 à 249.', precaution: 'Tranches d’effectif au 31 décembre ; la taille des unités légales et des établissements diffère.' },
-  { hors: true, id: 'conjoncture', nom: 'Conjoncture de l’emploi : glissement annuel et indice base 100', formule: 'Évolution de l’emploi salarié privé ESS et hors ESS en glissement annuel, rapportée à une base 100 ; emplois créés sur la période ; croissance annuelle moyenne.', outil: 'indicateurs_avances (indice base 100) · tendance_et_regression (croissance annuelle moyenne) · analyser_dynamiques', source: 'Urssaf (séries trimestrielles) : source à brancher ; FLORES pour les évolutions annuelles', exemple: 'Guadeloupe 2015-2026 : 1 135 emplois ESS créés, +0,9 % de croissance annuelle moyenne.', precaution: 'Distinguer glissement annuel et évolution en cumul ; la base 100 dépend de la date choisie : l’indiquer.' },
+  { id: 'tcam', nom: 'Taux d’accroissement et taux de croissance annuel moyen (TCAM)', formule: 'Taux d’accroissement = (valeur finale − valeur initiale) / valeur initiale ; coefficient multiplicateur = valeur finale / valeur initiale ; TCAM = (valeur finale / valeur initiale)^(1/n) − 1, n étant le nombre d’intervalles entre les deux dates.', outil: 'calculer_evolution (mode donnees, valeurs, enchainement, inverse)', source: 'Acoss-Urssaf (séries trimestrielles) uniquement, pas FLORES', exemple: 'ESS, 2006 → 2012 : 49 158 → 52 383 salariés, soit +1,1 % par an ; privé hors ESS −0,7 % par an (note méthodologique TCAM).', precaution: 'Seules les valeurs initiale et finale comptent. Les taux ne s’additionnent pas et ne se compensent pas : on multiplie les coefficients. Pour plusieurs territoires, additionner les effectifs puis calculer le taux, jamais moyenner des taux.' },
+  { id: 'glissement', nom: 'Glissement annuel, variation trimestrielle et solde net', formule: 'Glissement annuel : période comparée à la même période un an avant (T4 2025 / T4 2024) ; variation trimestrielle : T / T−1 ; solde net = emplois en fin de période − emplois au début.', outil: 'calculer_evolution(type=glissement_annuel ou glissement_trimestriel)', source: 'Acoss-Urssaf (trimestres) uniquement, pas FLORES', exemple: '(note de conjoncture ESS France, T4 2025) solde net de −10 447 emplois dans l’ESS sur un an ; recul plus marqué chez les associations, hausse chez les fondations.', precaution: 'Comparer l’ESS au privé hors ESS ; donner le solde en volume et le taux ; ne comparer que des périodes de même nature.' },
+  { id: 'salaire_ipc', nom: 'Salaire moyen par tête et inflation', formule: 'Salaire moyen par tête = masse salariale / effectifs ; évolution en glissement annuel comparée à l’indice des prix à la consommation (IPC).', outil: 'calculer_evolution(indicateur=remuneration_moyenne)', source: 'Urssaf ; IPC (Insee) à saisir : il n’est pas dans les données chargées', exemple: '(note de conjoncture ESS France, T4 2025) salaire moyen de l’ESS +1,2 %, au-dessus d’une inflation de 0,8 %.', precaution: 'Euros courants : l’écart à l’inflation donne l’évolution du pouvoir d’achat.' },
+  { id: 'conjoncture', nom: 'Conjoncture de l’emploi : glissement annuel et indice base 100', formule: 'Évolution de l’emploi salarié privé ESS et hors ESS en glissement annuel, rapportée à une base 100 ; emplois créés sur la période ; croissance annuelle moyenne.', outil: 'indicateurs_avances (indice base 100) · tendance_et_regression (croissance annuelle moyenne) · analyser_dynamiques', source: 'Urssaf (séries trimestrielles) : source à brancher ; FLORES pour les évolutions annuelles', exemple: 'Guadeloupe 2015-2026 : 1 135 emplois ESS créés, +0,9 % de croissance annuelle moyenne.', precaution: 'Distinguer glissement annuel et évolution en cumul ; la base 100 dépend de la date choisie : l’indiquer.' },
   { id: 'contribution', nom: 'Contribution de l’ESS à l’emploi privé', formule: 'Emplois ESS créés / emplois privés créés sur la période (en %).', outil: 'analyser_dynamiques (contributions) · calculer(evolution_1an)', source: 'FLORES sur deux millésimes', exemple: '(publié à partir de séries Urssaf) 2015-2016 : +874 emplois ESS, soit 39 % des emplois privés créés.', precaution: 'Quand l’emploi privé baisse, la part est difficile à interpréter : donner les volumes.' },
   { id: 'croissance_secteur', nom: 'Taux de croissance par secteur d’activité', formule: 'Évolution de l’emploi entre deux dates pour chaque secteur.', outil: 'analyser_dynamiques (contributions des secteurs, effet de structure)', source: 'FLORES sur deux millésimes', exemple: '(publié à partir de séries Urssaf) 2015-2016 : +31 % dans l’action sociale (Guadeloupe).', precaution: 'Sur de petits effectifs, un fort pourcentage correspond à peu d’emplois.' },
   { hors: true, id: 'renouvellement', nom: 'Enjeu de renouvellement : départs à la retraite à venir', formule: 'Nombre de salariés atteignant l’âge de la retraite sur un horizon donné.', outil: 'à brancher (données par âge)', source: 'Publications nationales du réseau', exemple: 'France métropolitaine : 493 200 départs en retraite d’ici 2026.', precaution: 'Indicateur national : ne pas l’appliquer tel quel à un territoire.' },
@@ -25124,6 +25190,234 @@ function renderIndic() {
   el.innerHTML = `<div class="card"><h3>Indicateurs de référence du réseau (${INDIC_ACT().length})</h3><p class="muted" style="margin-top:0">Ce que les publications du réseau mesurent et comment la donnée est exploitée. L’Expert IA s’en sert pour proposer les bons indicateurs, avec leur dénominateur, leur source et leurs précautions.</p>${INDIC_ACT().map((x) => `<details style="padding:6px 0;border-top:1px solid var(--line)"><summary><strong>${esc(x.nom)}</strong></summary><div style="padding:6px 0 2px;font-size:.93em"><p style="margin:2px 0"><strong>Calcul :</strong> ${esc(x.formule)}</p><p style="margin:2px 0"><strong>Dans l’outil :</strong> ${esc(x.outil)}</p><p style="margin:2px 0"><strong>Source :</strong> ${esc(x.source)}</p><p style="margin:2px 0"><strong>Exemple publié :</strong> ${esc(x.exemple)}</p><p style="margin:2px 0"><strong>Précaution :</strong> ${esc(x.precaution)}</p></div></details>`).join('')}<h4 style="margin:14px 0 4px">Conventions d’exploitation</h4><ul style="margin:0;padding-left:20px">${INDIC_CONV.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
 }
 Object.assign(window.ESS, { INDIC_REF, renderIndic });
+
+/* ======================================================================
+   Calculs d'évolution (notes « Calculer des taux d'accroissement » et « TCAM ») : taux d'accroissement, coefficient
+   multiplicateur, enchaînement de taux, taux de croissance annuel moyen (TCAM), à toute échelle géographique.
+   Règle : on agrège d'abord les effectifs (somme), on calcule ensuite les taux ; on n'additionne ni ne moyenne jamais des taux.
+   ====================================================================== */
+const evFin = (x) => typeof x === 'number' && isFinite(x);
+/** vi : valeur initiale, vf : valeur finale, n : nombre d'intervalles (années) entre les deux dates. */
+function evolCalc(vi, vf, n) {
+  if (!evFin(vi) || !evFin(vf)) return { err: 'valeur manquante' };
+  return { vi, vf, n, solde: vf - vi, coeff: vi > 0 ? vf / vi : null, taux: vi > 0 ? (vf - vi) / vi * 100 : null, tcam: vi > 0 && vf > 0 && n > 0 ? (Math.pow(vf / vi, 1 / n) - 1) * 100 : null };
+}
+/** Enchaînement de taux successifs (en %) : coefficient total = produit des coefficients ; le TCAM est la moyenne géométrique. */
+function evolChain(rates) {
+  const c = rates.reduce((a, r) => a * (1 + r / 100), 1); const n = rates.length;
+  return { coeff: c, taux: (c - 1) * 100, tcam: n > 0 && c > 0 ? (Math.pow(c, 1 / n) - 1) * 100 : null, somme_naive: rates.reduce((a, r) => a + r, 0), n };
+}
+const evP = (x, d = 1) => (x == null || !isFinite(x) ? '—' : (x > 0 ? '+' : '') + fDec(x, d) + ' %');
+const evV = (x, mes) => (x == null ? '—' : mes === 'masse_salariale' || mes === 'remuneration_moyenne' ? fiMeSafe(x) : fInt(x));
+const fiMeSafe = (x) => (x >= 1e6 ? fDec(x / 1e6, 1) + ' M€' : fInt(x) + ' €');
+const EV_MES = { effectifs: (a) => a.eff, etablissements: (a) => a.etab, etp: (a) => a.etp, masse_salariale: (a) => a.ms, remuneration_moyenne: (a) => remMoy(a) };
+function evolPeriodes(a) {
+  const t1 = checkT(a.a || state.times.at(-1)); let t0 = a.de;
+  if (a.type === 'glissement_annuel' || a.type === 'glissement_trimestriel') {
+    if (state.timeType === 'trimestre') { const m = t1.match(/^(\d{4})-T([1-4])$/); if (m) t0 = a.type === 'glissement_annuel' ? `${m[1] - 1}-T${m[2]}` : (+m[2] === 1 ? `${m[1] - 1}-T4` : `${m[1]}-T${m[2] - 1}`); }
+    else { const i = state.times.indexOf(t1); t0 = state.times[i - 1]; if (a.type === 'glissement_trimestriel') throw new Error('Données annuelles : pas de glissement trimestriel.'); }
+  }
+  if (!t0) t0 = state.times[0]; t0 = checkT(t0); if (t0 === t1) throw new Error('Deux périodes différentes sont nécessaires (de / a).'); return [t0, t1];
+}
+function evolDonnees(a) {
+  needData(); const mes = a.indicateur || 'effectifs'; if (!EV_MES[mes]) throw new Error('Indicateur non géré : ' + mes);
+  const [t0, t1] = evolPeriodes(a); const n = yearsBetween(t0, t1); const f = a.territoire ? { geoLevel: a.territoire_niveau || (/^(France|Outre|Hexagone)/i.test(a.territoire) ? 'zone' : 'geo1'), geoValue: a.territoire } : { geoLevel: '', geoValue: '' };
+  const champs = { 'ESS': ['ESS'], 'Privé hors ESS': ['Privé hors ESS'], 'Public': ['Public'] }; const out = []; const notes = [];
+  const rowsAt = (t) => filt({ ...f, t, famille: a.famille || '', secteur: a.secteur || '' }, null);
+  const R0 = rowsAt(t0); const R1 = rowsAt(t1); if (!R0.length || !R1.length) throw new Error(`Aucune donnée pour ${a.territoire || 'l’ensemble'} en ${!R0.length ? t0 : t1}.`);
+  const val = (rows, st) => { const g = agg(rows.filter((r) => r.statut === st)); return { v: EV_MES[mes](g), sec: isSecret(g), n: g.n }; };
+  const line = (lib, A, B) => { const e = evolCalc(A.v, B.v, n); const ns = A.sec || B.sec; out.push({ lib, ...e, ns, ns0: A.sec, ns1: B.sec }); };
+  const dim = a.ventilation && a.ventilation !== 'aucune' ? a.ventilation : null;
+  if (!dim) { for (const st of Object.keys(champs)) { const A = val(R0, st); const B = val(R1, st); if (A.n && B.n) line(st === 'ESS' ? 'ESS' : st, A, B); } }
+  else {
+    if (!['famille', 'secteur', 'geo1', 'geo2', 'geo3', 'taille'].includes(dim) && !dimsAvailable().includes(dim)) throw new Error('Ventilation non disponible : ' + dimsAvailable().join(', '));
+    const st = a.champ && a.champ !== 'Tous' ? a.champ : 'ESS';
+    let key = (r) => dimVal(r, dim);
+    if (dim === 'secteur') { const typ = fiTypo(t1) || fiTypo(t0); if (typ) { key = (r) => { const m = fiMatch(r.secteur, typ); const P = m ? (m.principal ? m : typ.items.find((x) => x.principal && x.lib === m.parent)) : null; return P ? fiSecLab(P.name) : r.secteur; }; notes.push(`Secteurs harmonisés sur la typologie régionale de la commande INSEE ${typ.year} (les libellés diffèrent d’un millésime à l’autre).`); } }
+    const g0 = groupBy(R0.filter((r) => r.statut === st), key); const g1 = groupBy(R1.filter((r) => r.statut === st), key);
+    for (const k of new Set([...g0.keys(), ...g1.keys()])) { if (!k) continue; const x0 = g0.get(k); const x1 = g1.get(k); if (!x0 || !x1) { notes.push(`« ${k} » présent à une seule des deux dates : évolution non calculée.`); continue; } line(`${k} (${st})`, { v: EV_MES[mes](x0), sec: isSecret(x0) }, { v: EV_MES[mes](x1), sec: isSecret(x1) }); }
+    out.sort((x, y) => (y.vf || 0) - (x.vf || 0));
+  }
+  const ess = out.find((x) => x.lib === 'ESS'); const prv = out.find((x) => x.lib === 'Privé hors ESS');
+  const terr = a.territoire || 'ensemble des données chargées'; const unit = mes === 'etablissements' ? 'du nombre d’établissements' : mes === 'etp' ? 'des ETP' : mes === 'masse_salariale' ? 'de la masse salariale brute (euros courants)' : mes === 'remuneration_moyenne' ? 'de la rémunération moyenne (euros courants)' : 'des salariés (postes)';
+  let txt = `Évolution ${unit} · ${terr} · ${t0} → ${t1} (n = ${fDec(n, n % 1 ? 2 : 0)} an${n > 1 ? 's' : ''} entre les deux dates)\n` + out.map((x) => x.err ? `- ${x.lib} : ${x.err}` : `- ${x.lib} : ${x.ns0 ? 'NS' : evV(x.vi, mes)} → ${x.ns1 ? 'NS' : evV(x.vf, mes)} · solde ${x.ns ? 'NS' : (x.solde > 0 ? '+' : '') + (mes === 'masse_salariale' || mes === 'remuneration_moyenne' ? evV(x.solde, mes) : fInt(x.solde))} · taux d’accroissement ${x.ns ? 'NS (secret statistique)' : evP(x.taux)} · coefficient ${x.ns || x.coeff == null ? '—' : fDec(x.coeff, 4)} · TCAM ${x.ns ? 'NS' : evP(x.tcam)}`).join('\n');
+  if (ess && prv && ess.tcam != null && prv.tcam != null && !ess.ns && !prv.ns) txt += `\nÉcart ESS – privé hors ESS : ${fSgn(ess.taux - prv.taux)} points sur la période (taux d’accroissement), ${fSgn(ess.tcam - prv.tcam)} points par an (TCAM).`;
+  if (ess && prv && !ess.ns && !prv.ns) { const tot = ess.solde + prv.solde; if (tot !== 0 && Math.sign(ess.solde) === Math.sign(tot)) txt += `\nContribution de l’ESS aux emplois créés (ESS + privé hors ESS) : ${fDec(ess.solde / tot * 100, 0)} %.`; }
+  txt += `\nMéthode : taux d’accroissement = (valeur finale − valeur initiale) / valeur initiale ; coefficient = valeur finale / valeur initiale ; TCAM = (valeur finale / valeur initiale)^(1/n) − 1, n = nombre d’intervalles entre les deux dates (valeurs initiale et finale seulement, les variations intermédiaires ne comptent pas). Les taux sont calculés après agrégation des effectifs et ne s’additionnent ni ne se moyennent.`;
+  if (n < 2 && !a.type) txt += `\nAttention : TCAM sur ${fDec(n, 2)} an, égal au taux d’accroissement : il n’apporte rien de plus.`; if (n < 1) txt += '\nPériode inférieure à un an : TCAM annualisé à interpréter avec prudence.';
+  if (notes.length) txt += '\n' + notes.slice(0, 6).join('\n');
+  txt += `\nVigilance : vérifier que le champ (ESS, périmètre, nomenclature) est identique aux deux dates avant de conclure à une évolution réelle.`;
+  return txt;
+}
+function evolTool(a) {
+  const mode = a.mode || 'donnees';
+  if (mode === 'valeurs') { const n = +a.nb_periodes; const r = evolCalc(+a.valeur_initiale, +a.valeur_finale, n); if (r.err) return 'Valeurs manquantes.'; return `Valeur initiale ${fInt(r.vi)} → finale ${fInt(r.vf)} · solde ${r.solde > 0 ? '+' : ''}${fInt(r.solde)} · taux d’accroissement ${evP(r.taux, 2)} · coefficient multiplicateur ${r.coeff == null ? '—' : fDec(r.coeff, 4)} · TCAM sur ${n} période${n > 1 ? 's' : ''} : ${evP(r.tcam, 2)} (formule ((Vf/Vi)^(1/n)) − 1).`; }
+  if (mode === 'enchainement') { const r = evolChain((a.taux || []).map(Number)); return `Taux successifs ${a.taux.join(' %, ')} % → coefficient total ${fDec(r.coeff, 4)} soit ${evP(r.taux, 2)} (et non ${evP(r.somme_naive, 2)} qui est la somme naïve des taux) ; taux moyen géométrique ${evP(r.tcam, 2)} par période.`; }
+  if (mode === 'inverse') { const c = Math.pow(1 + +a.tcam / 100, +a.nb_periodes); return `Un TCAM de ${a.tcam} % pendant ${a.nb_periodes} périodes donne un coefficient total de ${fDec(c, 4)}, soit ${evP((c - 1) * 100, 2)} au total.`; }
+  return evolDonnees(a);
+}
+
+/* ===== Conjoncture de l'emploi (Acoss-Urssaf, séries trimestrielles BRUTES) =====
+   Méthode de la note ESS France / Observatoire national de l'ESS :
+   - emplois salariés au dernier jour du trimestre (hors MSA, hors ETP), séries brutes ;
+   - évolutions en GLISSEMENT ANNUEL (T / T-4) ; solde net = effectif T − effectif T-4 ;
+   - salaire moyen par tête (SMPT, mensuel) = masse salariale / effectif moyen du trimestre / 3.
+   Ces formules ne s'appliquent QU'À ces séries, jamais aux tableaux FLORES (photographies annuelles). */
+const URS_CH = { ESS: 'ESS', ASSO: 'Associations', COOP: 'Coopératives', MUT: 'Mutuelles', FOND: 'Fondations', ESSP: 'ESS élargie (« ESS plus »)', PHESS: 'Privé hors ESS' };
+const URS_FAM = ['ASSO', 'COOP', 'MUT', 'FOND'];
+const URS_OM = ['RN01', 'RN02', 'RN03', 'RN04'];
+const URS_NOMLAB = { NAF: 'nomenclature NAF détaillée', NAF_AG: 'nomenclature agrégée des associations', TOT: 'total' };
+const URS_PRETTY = { IDF: 'Île-de-France', REUNION: 'La Réunion', CENTRE_VAL_DE_LOIRE: 'Centre-Val de Loire', PROVENCE_ALPES_COTE_D_AZUR: 'Provence-Alpes-Côte d’Azur', AUVERGNE_RHONE_ALPES: 'Auvergne-Rhône-Alpes', BOURGOGNE_FRANCHE_COMTE: 'Bourgogne-Franche-Comté', GRAND_EST: 'Grand Est', HAUTS_DE_FRANCE: 'Hauts-de-France', NORMANDIE: 'Normandie', BRETAGNE: 'Bretagne', PAYS_DE_LA_LOIRE: 'Pays de la Loire', NOUVELLE_AQUITAINE: 'Nouvelle-Aquitaine', OCCITANIE: 'Occitanie', CORSE: 'Corse', GUADELOUPE: 'Guadeloupe', MARTINIQUE: 'Martinique', GUYANE: 'Guyane', BOURGOGNE_FR_COMTE: 'Bourgogne-Franche-Comté', PACA: 'Provence-Alpes-Côte d’Azur', LA_REUNION: 'La Réunion' };
+const ursCap = (s) => String(s).toLowerCase().replace(/(^|[\s'’-])([a-zàâçéèêëîïôûù])/g, (m, a, b) => a + b.toUpperCase());
+const ursLab = (a, l) => URS_PRETTY[String(l).toUpperCase().replace(/[ -]/g, '_')] || (a === 'D9F' ? 'Code 9F (non identifié)' : ursCap(String(l).replace(/_/g, ' ')));
+const ursSecLab = (s) => String(s).replace(/^[A-Za-z0-9-]{1,6}_/, '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+const ursQLab = (t) => { const m = /^(\d{4})-T(\d)$/.exec(t || ''); return m ? (m[2] === '1' ? '1er' : m[2] + 'e') + ' trimestre ' + m[1] : t || ''; };
+const ursQ4 = (t, n = 4) => { const m = /^(\d{4})-T(\d)$/.exec(t); if (!m) return null; const k = (+m[1]) * 4 + (+m[2] - 1) - n; return Math.floor(k / 4) + '-T' + ((k % 4) + 1); };
+
+const ursDetect = (cols) => { const l = cols.map((c) => String(c).toLowerCase()); return l.includes('strate') && l.includes('aire') && l.includes('secteur') && l.some((c) => /^eff_brut\d{6}$/.test(c)); };
+/** Feuille « ESS_BRUT » de l'extraction Acoss → séries compactes (un tableau de valeurs par mesure, alignées sur `times`). */
+function ursConvert(sd, it) {
+  const qc = {}; const tset = new Set();
+  for (const c of sd.cols) { const m = String(c).match(/^(eff|nb_etab|sal|smpt)_brut(\d{4})([1-4])3$/); if (m) { const k = m[1] === 'nb_etab' ? 'etab' : m[1]; (qc[k] = qc[k] || []).push([c, `${m[2]}-T${m[3]}`]); tset.add(`${m[2]}-T${m[3]}`); } }
+  const times = [...tset].sort(); const ti = new Map(times.map((t, i) => [t, i])); const rows = []; const num = (v) => (v === '' || v == null || isNaN(+v) ? null : +v);
+  for (const r of sd.data) {
+    const m = String(r.strate || '').match(/^REF\d+_([A-Z]+)_(FRA|REGN|DEP)_(.+)$/); if (!m) continue;
+    const o = { ch: m[1], lv: m[2], nom: m[3], a: String(r.aire), l: String(r.lib_aire || ''), sec: String(r.secteur || ''), x: /secret/i.test(String(r.secret_stat || '')) };
+    for (const k in qc) { const arr = new Array(times.length).fill(null); for (const [c, t] of qc[k]) arr[ti.get(t)] = num(r[c]); o[k] = arr; }
+    rows.push(o);
+  }
+  return rows.length ? { kind: 'urs', times, rows, file: it.path || it.name, at: Date.now() } : { kind: 'ign', why: 'séries Urssaf non reconnues' };
+}
+const URS = { idx: null, terrs: null };
+function ursSet(u) { state.urs = u; URS.idx = null; URS.terrs = null; }
+function ursIdx() { if (URS.idx) return URS.idx; const m = new Map(); for (const r of state.urs.rows) m.set([r.ch, r.lv, r.nom, r.a, r.sec].join('|'), r); URS.idx = m; return m; }
+/** Territoires disponibles : France, Outre-mer (4 régions historiques), régions, départements. */
+function ursTerrs() {
+  if (URS.terrs) return URS.terrs; const L = [{ id: 'FR', lv: 'FRA', a: 'TOT', lab: 'France entière' }, { id: 'OM', lv: 'OM', a: 'OM', lab: 'Outre-mer (Guadeloupe, Martinique, Guyane, La Réunion)' }];
+  const seen = new Set();
+  for (const r of state.urs.rows) { if (r.lv === 'FRA' || seen.has(r.lv + r.a)) continue; seen.add(r.lv + r.a); L.push({ id: r.a, lv: r.lv, a: r.a, lab: ursLab(r.a, r.l) }); }
+  const rank = (t) => (t.lv === 'FRA' ? 0 : t.lv === 'OM' ? 1 : t.lv === 'REGN' ? 2 : 3); L.sort((a, b) => rank(a) - rank(b) || a.lab.localeCompare(b.lab, 'fr'));
+  return (URS.terrs = L);
+}
+const URS_ALIAS = { 971: 'RN01', 972: 'RN02', 973: 'RN03', 974: 'RN04', 'D971': 'D9A', 'D972': 'D9B', 'D973': 'D9C', 'D974': 'D9D' };
+const ursTerr = (id0) => { const id = String(id0).trim(); if (URS_ALIAS[id] && /^\d+$/.test(id)) { const r = ursTerrs().find((t) => t.id === URS_ALIAS[id] || t.id === ({ 971: 'D9A', 972: 'D9B', 973: 'D9C', 974: 'D9D' })[id]); if (r) return r; } return ursTerrs().find((t) => t.id === (URS_ALIAS[id] || id)) || ursTerrs().find((t) => t.id === 'D' + id.padStart(2, '0')) || ursTerr2(id); };
+const ursTerr2 = (id) => ursTerrs().find((t) => t.id === id || t.lab.toLowerCase() === String(id).toLowerCase() || (t.lab.toLowerCase().includes(String(id).toLowerCase()) && String(id).length > 3)) || null;
+function ursRow(ch, terr, sec, nom) { const idx = ursIdx(); const noms = sec === 'TOTAL' ? ['TOT'] : nom ? [nom] : ['NAF', 'NAF_AG']; for (const n of noms) { const r = idx.get([ch, terr.lv, n, terr.a, sec].join('|')); if (r) return r; } return null; }
+/** Série (tableau aligné sur times) ; Outre-mer = somme des 4 régions (SMPT : moyenne pondérée par les effectifs) ; null si secret ou absent. */
+function ursSer(ch, terr, mes, sec = 'TOTAL', nom) {
+  if (terr.id === 'OM') {
+    const P = URS_OM.map((a) => ({ eff: ursSer(ch, { lv: 'REGN', a }, 'eff', sec, nom), v: ursSer(ch, { lv: 'REGN', a }, mes, sec, nom) })); if (P.some((p) => !p.v || !p.eff)) return null;
+    return state.urs.times.map((_, i) => { if (P.some((p) => p.v[i] == null || p.eff[i] == null)) return null; if (mes === 'smpt') { const w = P.reduce((s, p) => s + p.eff[i], 0); return w > 0 ? P.reduce((s, p) => s + p.v[i] * p.eff[i], 0) / w : null; } return P.reduce((s, p) => s + p.v[i], 0); });
+  }
+  const r = ursRow(ch, terr, sec, nom); return r && !r.x ? r[mes] : null;
+}
+/** Évolution en glissement annuel (n = 4 trimestres) : taux = (Vf − Vi)/Vi ; coefficient = Vf/Vi ; solde net = Vf − Vi. */
+function ursEv(ch, terr, mes, T, sec, nom, n = 4) {
+  const s = ursSer(ch, terr, mes, sec, nom); const i = state.urs.times.indexOf(T); if (!s || i < n) return null; const v = s[i]; const v0 = s[i - n]; if (v == null || v0 == null) return null;
+  return v0 > 0 ? { v, v0, solde: v - v0, taux: v / v0 - 1, coef: v / v0 } : { v, v0, solde: v - v0, taux: null, coef: null };
+}
+/** TCAM entre deux trimestres de même rang : (Vf/Vi)^(1/n) − 1, n = nombre d'années (intervalles). */
+function ursTcam(ch, terr, mes, T, nYears, sec, nom) {
+  const s = ursSer(ch, terr, mes, sec, nom); const i = state.urs.times.indexOf(T); const j = i - 4 * nYears; if (!s || j < 0 || s[i] == null || s[j] == null || !(s[j] > 0) || s[i] <= 0) return null; return { v: s[i], v0: s[j], tcam: Math.pow(s[i] / s[j], 1 / nYears) - 1, n: nYears };
+}
+const ursLastT = () => { const r = ursRow('ESS', { lv: 'FRA', a: 'TOT' }, 'TOTAL'); const t = state.urs.times; for (let i = t.length - 1; i >= 0; i--) if (r && r.eff[i] != null) return t[i]; return t.at(-1); };
+function ursSectors(ch, terr) {
+  const lv = terr.id === 'OM' ? 'REGN' : terr.lv; const a = terr.id === 'OM' ? 'RN01' : terr.a; const out = new Map();
+  for (const r of state.urs.rows) if (r.ch === ch && r.lv === lv && r.a === a && r.nom !== 'TOT') { if (!out.has(r.nom)) out.set(r.nom, []); out.get(r.nom).push(r.sec); }
+  return out;
+}
+const ursPct = (x, d = 1) => (x == null ? 'NS' : (x >= 0 ? '+' : '−') + fDec(Math.abs(x * 100), d) + NB + '%');
+const ursSig = (x) => (x == null ? 'NS' : (x >= 0 ? '+' : '−') + fInt(Math.abs(x)));
+/** Données structurées de la note pour un territoire et un trimestre. */
+function ursNoteData(terr, T, ipc) {
+  const D = { terr, T, T0: ursQ4(T), fam: [], sect: [], reg: [], warn: [] };
+  const line = (ch, sec, nom) => ({ ch, lab: URS_CH[ch], eff: ursEv(ch, terr, 'eff', T, sec, nom), etab: ursEv(ch, terr, 'etab', T, sec, nom), smpt: ursEv(ch, terr, 'smpt', T, sec, nom) });
+  for (const ch of ['ESS', ...URS_FAM, 'PHESS']) D.fam.push(line(ch, 'TOTAL'));
+  D.ess = D.fam[0]; D.ph = D.fam.at(-1);
+  if (ipc != null && isFinite(ipc)) for (const f of D.fam) { const g = f.smpt && f.smpt.taux; f.reel = g == null ? null : (1 + g) / (1 + ipc / 100) - 1; }
+  // secteurs : nomenclature NAF du niveau (ESS vs privé hors ESS, même nomenclature) puis associations en nomenclature agrégée
+  const mk = (ch, nom) => { const S = ursSectors(ch, terr).get(nom) || []; return S.map((sec) => { const e = ursEv(ch, terr, 'eff', T, sec, nom); const p = ursEv('PHESS', terr, 'eff', T, sec, nom); return { sec, lab: ursSecLab(sec), e, p, ch, nom }; }).filter((x) => x.e && x.e.solde != null); };
+  D.sect = mk('ESS', 'NAF'); D.sectAsso = terr.lv === 'FRA' || terr.lv === 'OM' || terr.lv === 'REGN' ? mk('ASSO', 'NAF_AG') : []; if (!D.sectAsso.length && terr.lv === 'DEP') D.sectAsso = mk('ASSO', 'NAF');
+  if (terr.lv === 'FRA' || terr.id === 'OM') { const regs = ursTerrs().filter((t) => t.lv === 'REGN' && (terr.id === 'FR' || URS_OM.includes(t.a))); D.reg = regs.map((t) => ({ t, ev: ursEv('ESS', t, 'eff', T), ph: ursEv('PHESS', t, 'eff', T) })).filter((x) => x.ev); if (terr.id === 'OM') { const my = ursTerr('D9F'); if (my) D.mayotte = { t: my, asso: ursEv('ASSO', my, 'eff', T), ess: ursEv('ESS', my, 'eff', T) }; } }
+  if (terr.id === 'D9F') D.warn.push('Code Urssaf 9F : territoire non identifié dans l’extraction (Mayotte n’est pas couverte par ces données, rien ne permet de le rattacher à Mayotte). Seules les associations sont lisibles.');
+  if (!D.ess.eff) D.warn.push('Série d’emploi de l’ESS non disponible pour ce territoire (secret statistique ou absence de la strate dans l’extraction).');
+  return D;
+}
+function ursNoteText(D) {
+  const e = D.ess.eff; const p = D.ph.eff; const L = []; const lab = D.terr.lab;
+  if (e) { L.push(`${lab} : au ${ursQLab(D.T)}, l’ESS compte ${fInt(e.v)} emplois salariés (régime général, hors MSA), soit ${ursSig(e.solde)} emplois et ${ursPct(e.taux)} en glissement annuel par rapport au ${ursQLab(D.T0)}.`);
+    if (p && p.taux != null && e.taux != null) L.push(`Le secteur privé hors ESS évolue de ${ursPct(p.taux)} (${ursSig(p.solde)} emplois) : écart ${fDec(Math.abs((e.taux - p.taux) * 100), 1)} point(s) ${e.taux >= p.taux ? 'en faveur' : 'en défaveur'} de l’ESS.`); }
+  const best = D.fam.filter((f) => URS_FAM.includes(f.ch) && f.eff && f.eff.taux != null).sort((a, b) => b.eff.solde - a.eff.solde);
+  if (best.length) { const h = best.filter((f) => f.eff.solde > 0).map((f) => `${f.lab.toLowerCase()} (${ursSig(f.eff.solde)})`); const b = best.filter((f) => f.eff.solde < 0).map((f) => `${f.lab.toLowerCase()} (${ursSig(f.eff.solde)})`); if (b.length) L.push(`Familles en baisse : ${b.join(', ')}.`); if (h.length) L.push(`Familles en hausse : ${h.join(', ')}.`); }
+  const s = D.ess.smpt; if (s) L.push(`Le salaire moyen par tête de l’ESS atteint ${fInt(s.v)} € par mois, ${ursPct(s.taux)} sur un an${D.ph.smpt ? ` (privé hors ESS : ${fInt(D.ph.smpt.v)} €, ${ursPct(D.ph.smpt.taux)})` : ''}.${D.ess.reel != null ? ` Corrigé de l’inflation fournie, l’évolution réelle est de ${ursPct(D.ess.reel)}.` : ''}`);
+  const sc = D.sect.filter((x) => x.e.solde !== 0).sort((a, b) => a.e.solde - b.e.solde);
+  const dn = sc.filter((x) => x.e.solde < 0).slice(0, 3); const up = sc.filter((x) => x.e.solde > 0).slice(-3).reverse(); const fmt = (a) => a.map((x) => `${x.lab} (${ursSig(x.e.solde)})`).join(' ; ');
+  if (dn.length || up.length) L.push(`${dn.length ? 'Secteurs les plus en baisse : ' + fmt(dn) + '. ' : ''}${up.length ? 'Secteurs les plus dynamiques : ' + fmt(up) + '.' : 'Aucun secteur en hausse nette.'}`);
+  return L;
+}
+const ursTbl = (head, rows, cls = '') => `<div style="overflow:auto"><table class="t ${cls}"><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+const ursTR = (cells, bold) => `<tr${bold ? ' style="font-weight:600"' : ''}>${cells.map((c) => `<td>${c}</td>`).join('')}</tr>`;
+function ursChart(terr, T) {
+  const ts = state.urs.times; const i = ts.indexOf(T); const from = Math.max(4, i - 11); const pts = []; for (let k = from; k <= i; k++) pts.push(ts[k]);
+  const se = pts.map((t) => { const e = ursEv('ESS', terr, 'eff', t); return e && e.taux != null ? e.taux * 100 : null; }); const sp = pts.map((t) => { const e = ursEv('PHESS', terr, 'eff', t); return e && e.taux != null ? e.taux * 100 : null; });
+  const all = [...se, ...sp].filter((x) => x != null); if (all.length < 4) return '';
+  const W = 640; const H = 220; const pl = 44; const pr = 14; const pt = 14; const pb = 34; const lo = Math.min(0, ...all); const hi = Math.max(0, ...all); const sp2 = (hi - lo) || 1; const y = (v) => pt + (H - pt - pb) * (1 - (v - lo) / sp2); const x = (k) => pl + (W - pl - pr) * (k / (pts.length - 1 || 1));
+  const path = (s) => { let d = ''; s.forEach((v, k) => { if (v != null) d += (d && s[k - 1] != null ? 'L' : 'M') + x(k).toFixed(1) + ' ' + y(v).toFixed(1); }); return d; };
+  const ticks = [lo, 0, hi].filter((v, k, a) => a.indexOf(v) === k);
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Glissement annuel de l’emploi salarié, ESS et privé hors ESS" style="width:100%;max-width:${W}px;height:auto;font-size:11px"><g stroke="#d8dce6" stroke-width="1">${ticks.map((v) => `<line x1="${pl}" x2="${W - pr}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" ${v === 0 ? 'stroke="#8a8f9c"' : ''}/>`).join('')}</g><g fill="#3c3c3b">${ticks.map((v) => `<text x="${pl - 6}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${fDec(v, 1)} %</text>`).join('')}${pts.map((t, k) => (k % 2 === (pts.length - 1) % 2 ? `<text x="${x(k).toFixed(1)}" y="${H - 14}" text-anchor="middle">${t.slice(5)} ${t.slice(2, 4)}</text>` : '')).join('')}</g><path d="${path(sp)}" fill="none" stroke="#4397d1" stroke-width="2"/><path d="${path(se)}" fill="none" stroke="#243570" stroke-width="2.4"/>${pts.map((t, k) => (se[k] != null ? `<circle cx="${x(k).toFixed(1)}" cy="${y(se[k]).toFixed(1)}" r="3" fill="#243570" stroke="#fff" stroke-width="2"><title>${t} ESS ${fDec(se[k], 2)} %</title></circle>` : '')).join('')}<g><rect x="${pl}" y="${H - 8}" width="10" height="3" fill="#243570"/><text x="${pl + 14}" y="${H - 4}" fill="#3c3c3b">ESS</text><rect x="${pl + 56}" y="${H - 8}" width="10" height="3" fill="#4397d1"/><text x="${pl + 70}" y="${H - 4}" fill="#3c3c3b">Privé hors ESS</text></g></svg>`;
+}
+function ursNoteHTML(D, T) {
+  const t = D.terr; const hd = [`Au ${D.T0 ? ursQLab(D.T0).replace(' trimestre', ' trim.') : ''}`, `Au ${ursQLab(D.T).replace(' trimestre', ' trim.')}`, 'Solde net', 'Évolution'];
+  const famRows = (m, unit) => D.fam.map((f) => { const x = f[m]; return ursTR([esc(f.lab), x ? fInt(x.v0) : 'NS', x ? fInt(x.v) : 'NS', m === 'smpt' ? ursSig(x && x.solde) : ursSig(x && x.solde), ursPct(x && x.taux), ...(m === 'smpt' && D.ess.reel != null ? [ursPct(f.reel)] : [])], f.ch === 'ESS'); });
+  const head = (m) => [m === 'smpt' ? 'Salaire moyen par tête (€/mois)' : m === 'etab' ? 'Établissements employeurs' : 'Emplois salariés', ...hd, ...(m === 'smpt' && D.ess.reel != null ? ['Évolution réelle'] : [])];
+  const secRows = (S) => S.slice().sort((a, b) => a.e.solde - b.e.solde).map((x) => ursTR([esc(x.lab), fInt(x.e.v), ursSig(x.e.solde), ursPct(x.e.taux), x.p ? ursPct(x.p.taux) : '—']));
+  const secHead = ['Secteur', 'Emplois', 'Solde net', 'ESS', 'Privé hors ESS'];
+  const sel = (S, n) => { const a = S.filter((x) => x.e.solde !== 0); const dn = a.slice().sort((p, q) => p.e.solde - q.e.solde).slice(0, n); const up = a.filter((x) => x.e.solde > 0).sort((p, q) => q.e.solde - p.e.solde).slice(0, n); return [...new Map([...up, ...dn].map((x) => [x.sec, x])).values()]; };
+  let h = `<div class="card ur-note"><h3 style="margin-top:0">Conjoncture de l’emploi dans l’ESS : ${esc(t.lab)} · ${esc(ursQLab(D.T))}</h3><p class="muted" style="margin-top:-4px">Emplois salariés au dernier jour du trimestre, séries brutes Acoss-Urssaf (régime général, hors MSA), évolutions en glissement annuel (${esc(ursQLab(D.T0))} → ${esc(ursQLab(D.T))}).</p>`;
+  h += D.warn.map((w) => `<div class="msg warn">${esc(w)}</div>`).join('');
+  h += ursNoteText(D).map((l) => `<p>${esc(l)}</p>`).join('');
+  h += '<h4>Emploi salarié par famille</h4>' + ursTbl(head('eff'), famRows('eff'));
+  const ch = ursChart(t, D.T); if (ch) h += `<h4>Glissement annuel de l’emploi, ${esc(t.lab)}</h4>${ch}`;
+  h += '<h4>Établissements employeurs</h4>' + ursTbl(head('etab'), famRows('etab'));
+  h += '<h4>Salaire moyen par tête</h4>' + ursTbl(head('smpt'), famRows('smpt')); if (D.ess.reel == null) h += '<p class="muted">Pour comparer à l’inflation, saisissez l’évolution annuelle de l’indice des prix à la consommation (Insee) : évolution réelle = (1 + évolution nominale) / (1 + inflation) − 1.</p>';
+  if (D.sect.length) { const S = sel(D.sect, 6); h += `<h4>Secteurs (${esc(URS_NOMLAB.NAF)}) : les plus fortes hausses et baisses de l’ESS</h4>` + ursTbl(secHead, secRows(S)); }
+  if (D.sectAsso.length) { h += `<h4>Associations par secteur (${esc(t.lv === 'DEP' ? URS_NOMLAB.NAF : URS_NOMLAB.NAF_AG)})</h4>` + ursTbl(['Secteur', 'Emplois', 'Solde net', 'Associations', 'Privé hors ESS'], secRows(D.sectAsso)); }
+  if (D.reg.length) { h += `<h4>Dynamiques régionales</h4>` + ursTbl(['Région', 'Emplois ESS', 'Solde net', 'ESS', 'Privé hors ESS'], D.reg.slice().sort((a, b) => (a.ev.taux ?? 0) - (b.ev.taux ?? 0)).map((x) => ursTR([esc(x.t.lab), fInt(x.ev.v), ursSig(x.ev.solde), ursPct(x.ev.taux), x.ph ? ursPct(x.ph.taux) : '—']))); }
+  if (D.mayotte) { const a = D.mayotte.asso; h += `<p class="muted"><b>Code Urssaf 9F</b> (territoire non identifié, exclu de l’agrégat ci-dessus) : ${a ? `associations ${fInt(a.v)} emplois, ${ursSig(a.solde)} (${ursPct(a.taux)}) sur un an ; ` : ''}les autres familles et le total ESS sont sous secret statistique.</p>`; }
+  h += `<details class="fi-notes noprint"><summary>Méthode, champ et limites</summary><ul><li>Source : Acoss-Urssaf, base Séquoia (BRC et DSN), extraction « ${esc((state.urs.file || '').split('/').pop())} ». Séries <b>brutes</b> (non corrigées des variations saisonnières) : seules les comparaisons de même trimestre d’une année sur l’autre ont un sens conjoncturel ; l’évolution d’un trimestre au suivant n’en a pas.</li><li>Emplois salariés au dernier jour du trimestre, chaque salarié comptant pour un, quelle que soit sa durée de travail (ce ne sont pas des ETP). Les salariés relevant de la MSA (environ 8 % de l’ESS : agriculture, agroalimentaire, ADMR, Crédit agricole, Groupama…) sont exclus ; les particuliers employeurs aussi.</li><li>Taux d’évolution = (V<sub>T</sub> − V<sub>T-4</sub>) / V<sub>T-4</sub> ; solde net = V<sub>T</sub> − V<sub>T-4</sub> ; coefficient = V<sub>T</sub> / V<sub>T-4</sub>. Les taux ne sont jamais additionnés ni moyennés : les agrégats (Outre-mer) sont calculés sur les effectifs sommés, puis l’évolution est recalculée.</li><li>Outre-mer = Guadeloupe + Martinique + Guyane + La Réunion (régions de l’extraction). Salaire moyen par tête agrégé : moyenne pondérée par les effectifs de fin de trimestre (approximation, la masse salariale agrégée n’étant pas recombinée).</li><li>Champs : ESS = associations + coopératives + mutuelles + fondations ; APE 84 et caisses de congés payés exclues. Privé hors ESS = régime général hors administrations, ESS et ESS élargie.</li><li>Secret statistique (moins de 3 établissements ou moins de 10 salariés) : « NS », jamais reconstitué.</li><li>Les nomenclatures sectorielles diffèrent selon le niveau géographique ; les secteurs ne sont comparables qu’à nomenclature identique.</li></ul></details></div>`;
+  return h;
+}
+function renderConjoncture() {
+  const el = $('conjCtl'); const out = $('conjOut'); if (!el) return;
+  if (!state.urs) { el.innerHTML = ''; out.innerHTML = '<div class="msg warn">Aucune série Acoss-Urssaf chargée. Déposez le fichier d’extraction (feuille « ESS_BRUT ») dans le dossier de données (sous-dossier « ACOSS URSSAF ») ou glissez-le dans l’onglet Données.</div>'; return; }
+  const terrs = ursTerrs(); const times = state.urs.times.filter((t) => t >= '2011-T1'); const last = ursLastT();
+  if (!el.dataset.ready) { el.dataset.ready = '1';
+    el.innerHTML = `<div class="card noprint"><div class="row"><label>Territoire<select id="conjTerr">${terrs.map((t) => `<option value="${esc(t.id)}">${esc(t.lab)}</option>`).join('')}</select></label><label>Trimestre<select id="conjT">${times.slice().reverse().map((t) => `<option value="${t}">${esc(ursQLab(t))}</option>`).join('')}</select></label><label>Inflation annuelle (IPC, %)<input id="conjIpc" type="number" step="0.1" placeholder="facultatif" style="width:120px"></label></div><div class="row" style="margin-top:12px"><button class="b primary" id="conjRun">Générer la note</button><button class="b" id="conjPrint">Imprimer / PDF</button></div></div>`;
+    const run = () => { const t = ursTerr($('conjTerr').value); const T = $('conjT').value; const v = $('conjIpc').value; out.innerHTML = ursNoteHTML(ursNoteData(t, T, v === '' ? null : +v), T); };
+    $('conjRun').onclick = run; $('conjPrint').onclick = () => window.print(); $('conjTerr').onchange = run; $('conjT').onchange = run; $('conjIpc').onchange = run; $('conjT').value = last; run();
+  }
+}
+// --- Outil de l'assistant : conjoncture à tout échelon (séries Urssaf uniquement) ---
+IA_TOOLS.push({ name: 'conjoncture_urssaf', description: 'Conjoncture de l’emploi salarié (séries trimestrielles brutes Acoss-Urssaf, hors MSA, emplois au dernier jour du trimestre) pour France, Outre-mer (4 DROM), une région (ex. Guyane), un département : emplois, solde net, taux en glissement annuel, établissements, salaire moyen par tête (SMPT), TCAM, par famille (associations, coopératives, mutuelles, fondations, ESS, privé hors ESS) et par secteur. Seul outil autorisé pour les évolutions : ne jamais l’appliquer à FLORES.', schema: { type: 'object', properties: { territoire: { type: 'string', description: 'France, Outre-mer, nom de région ou de département, ou code (RN03, D9F)' }, trimestre: { type: 'string', description: 'ex. 2025-T4 (par défaut : dernier disponible)' }, champ: { type: 'string', enum: ['ESS', 'ASSO', 'COOP', 'MUT', 'FOND', 'ESSP', 'PHESS'], description: 'défaut : toutes les familles' }, secteur: { type: 'string', description: 'libellé ou code de secteur (facultatif) ; sinon total' }, mesure: { type: 'string', enum: ['eff', 'etab', 'smpt', 'sal'] }, tcam_annees: { type: 'integer', description: 'nombre d’années pour un TCAM (facultatif)' }, inflation_pct: { type: 'number', description: 'inflation annuelle en % pour comparer le SMPT' } }, required: ['territoire'] },
+  run: (a) => {
+    if (!state.urs) return 'Aucune série Acoss-Urssaf chargée (fichier d’extraction « ESS_BRUT » à déposer dans le dossier de données).';
+    const t = ursTerr(a.territoire); if (!t) return 'Territoire inconnu. Disponibles : ' + ursTerrs().map((x) => x.lab + ' [' + x.id + ']').join(' ; ');
+    const T = a.trimestre || ursLastT(); if (!state.urs.times.includes(T)) return 'Trimestre indisponible. Période couverte : ' + state.urs.times[0] + ' à ' + state.urs.times.at(-1);
+    const out = [`Source Acoss-Urssaf (séries brutes, régime général hors MSA ; emplois fin de trimestre, non ETP). Territoire : ${t.lab}. Trimestre ${T}, comparé à ${ursQ4(T)} (glissement annuel).`];
+    let sec = 'TOTAL'; if (a.secteur) { const want = String(a.secteur).toLowerCase(); const found = [...ursSectors(a.champ || 'ESS', t).values()].flat().find((s) => s.toLowerCase() === want || ursSecLab(s).toLowerCase().includes(want)); if (!found) return 'Secteur introuvable pour ce champ et ce niveau. Exemples : ' + [...new Set([...ursSectors(a.champ || 'ESS', t).values()].flat())].slice(0, 25).map(ursSecLab).join(' ; '); sec = found; out.push('Secteur : ' + ursSecLab(sec)); }
+    const champs = a.champ ? [a.champ] : ['ESS', ...URS_FAM, 'PHESS']; const mess = a.mesure ? [a.mesure] : ['eff', 'etab', 'smpt'];
+    for (const ch of champs) for (const m of mess) {
+      const e = ursEv(ch, t, m, T, sec); const nm = { eff: 'emplois salariés', etab: 'établissements', smpt: 'SMPT (€/mois)', sal: 'masse salariale (€)' }[m];
+      if (!e) { out.push(`${URS_CH[ch]} · ${nm} : non disponible (secret statistique ou strate absente).`); continue; }
+      let l = `${URS_CH[ch]} · ${nm} : ${fDec(e.v, m === 'smpt' ? 0 : 0)} contre ${fDec(e.v0, 0)} ; solde ${ursSig(e.solde)} ; taux ${ursPct(e.taux, 2)} ; coefficient ${e.coef == null ? 'NS' : fDec(e.coef, 4)}`;
+      if (m === 'smpt' && a.inflation_pct != null && e.taux != null) l += ` ; évolution réelle ${ursPct((1 + e.taux) / (1 + a.inflation_pct / 100) - 1, 2)} (inflation ${a.inflation_pct} %)`;
+      if (a.tcam_annees) { const c = ursTcam(ch, t, m, T, a.tcam_annees, sec); l += c ? ` ; TCAM sur ${a.tcam_annees} an(s) : ${ursPct(c.tcam, 2)}` : ' ; TCAM non calculable'; }
+      out.push(l + '.');
+    }
+    if (t.id === 'OM') out.push('Agrégat = somme des 4 régions d’outre-mer ; Mayotte n’est pas couverte par ces données ; le code 9F de l’extraction n’est pas identifié et est exclu.');
+    return out.join('\n');
+  } });
+Object.assign(window.ESS, { ursNoteData, ursNoteHTML, ursEv, ursTcam, ursSer, ursTerrs, renderConjoncture });
 
 /* ======================================================================
    Fiche territoire : une page A4 « L'ESS en {territoire} {millésime} » calculée à partir des données chargées
@@ -25312,7 +25606,9 @@ function syncGroups() { const grp = new Map(); for (const f of SYNC_FILES) { con
 async function syncAutoLoad() {
   if (SYNC_AUTO_DONE || !syncAutoOn()) return; SYNC_AUTO_DONE = true;
   if (typeof state !== 'undefined' && state.rows && state.rows.length && !SNAP_RESTORED) return;
-  const grp = [...syncGroups()]; if (!grp.length) return;
+  const grp = [...syncGroups()];
+  const ursIt = () => SYNC_FILES.filter((x) => /\.(xlsx|xlsm)$/i.test(x.path) && /acoss|urssaf/i.test(x.path)).map((f) => ({ name: f.path.split('/').pop(), path: f.path, mtime: f.mtime, size: f.size, getFile: () => f.h.getFile() }));
+  if (!grp.length) { const u = ursIt(); if (u.length) { progSet('Lecture des séries Urssaf…', null); await loadUrs(u).catch((e) => console.warn('séries Urssaf non lues', e)); progEnd('Séries Urssaf prêtes'); } return; }
   const pick = grp.find(([k]) => /flores/i.test(k)) || grp.sort((a, b) => b[1].length - a[1].length)[0];
   await syncLoadGroup(pick); if (window.ESS && ESS.showView && document.querySelector('nav.side button.active')?.dataset.v === 'donnees') ESS.showView('accueil');
 }
@@ -25366,8 +25662,11 @@ async function syncLoadGroup([k, files]) {
     const cmdf = SYNC_FILES.filter((x) => isCmdPath(x.path) && groupKeyOf(x.path) === k);
     const items = [...files, ...cmdf, ...refs].map((f) => ({ name: f.path.split('/').pop(), path: f.path, mtime: f.mtime, size: f.size, getFile: () => f.h.getFile() }));
     if (SNAP_RESTORED && SNAP && SNAP.sig === itemsSig(items) && state.rows && state.rows.length) { $('syMsg').innerHTML = `<span class="badge ok">${esc(k)} : données déjà à jour (aucun fichier modifié depuis le dernier chargement).</span>`; await loadParams(SYNC_FILES.filter((x) => isParamPath(x.path))); loadPubs(SYNC_FILES.filter((x) => isPubPath(x.path))).catch((e) => err(e)); return; }
+    const urf = SYNC_FILES.filter((x) => /\.(xlsx|xlsm)$/i.test(x.path) && /acoss|urssaf|conjoncture/i.test(x.path) && !files.includes(x));
+    const itemsU = urf.map((f) => ({ name: f.path.split('/').pop(), path: f.path, mtime: f.mtime, size: f.size, getFile: () => f.h.getFile() }));
     await syncCacheRead();
     await loadTables(items, { label: k });
+    if (itemsU.length && !items.some((x) => /acoss|urssaf/i.test(x.path))) { try { await loadUrs(itemsU); } catch (e) { console.warn('séries Urssaf non lues', e); } }
     await loadParams(SYNC_FILES.filter((x) => isParamPath(x.path)));
     loadPubs(SYNC_FILES.filter((x) => isPubPath(x.path))).catch((e) => err(e));
     syncCacheWrite().catch(() => {});
@@ -25393,7 +25692,7 @@ async function syncWrite(files, sub = 'Consultation') {
   return `${SYNC_DIR.name}/${sub}`;
 }
 (function initSync() {
-  snapRestore().catch(() => {}); paramsRestore().catch(() => {}); pubsRestore().catch(() => {});
+  snapRestore().catch(() => {}); cGet('URS').then((u) => { if (u && u.rows && !state.urs) ursSet(u); }).catch(() => {}); paramsRestore().catch(() => {}); pubsRestore().catch(() => {});
   const card = $('syCard'); if (!card) return;
   if (!SYNC_OK) { $('syBody').innerHTML = '<div class="msg warn">Cette fonction nécessite Google Chrome ou Microsoft Edge sur ordinateur. Dans les autres navigateurs, chargez le fichier avec le cadre ci-dessus.</div>'; return; }
   $('syPick').onclick = async () => { try { const h = await showDirectoryPicker({ mode: 'readwrite', id: 'ess-dossier' }); await syncConnect(h); } catch (e) { if (e.name !== 'AbortError') err(e); } };
