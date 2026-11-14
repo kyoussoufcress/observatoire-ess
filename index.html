@@ -243,6 +243,30 @@ body.consult .x-expert{display:none!important}
 @media (max-width:1500px){.tagline{display:none}}
 header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media (max-width:1400px){header.top .sub{display:none}}
 @media print{.doc .doc-head,.doc .doc-foot,.cover-page{-webkit-print-color-adjust:exact;print-color-adjust:exact}.cover-page{page-break-after:always}.cover-page.back{page-break-before:always;page-break-after:auto}.cover-page img{box-shadow:none;border-radius:0}}
+
+/* Fiche territoire (page A4 infographie, couleurs de la charte) */
+.fiche-page{width:210mm;min-height:297mm;margin:0 auto 18px;background:#fff;color:#3c3c3b;padding:11mm 12mm 9mm;box-shadow:var(--shadow);font-family:var(--font);display:flex;flex-direction:column;gap:10px}
+.fiche-page p{margin:0}.fi-head{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid #243570;padding-bottom:10px}
+.fi-title{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}.fi-big{font:900 64px/1 var(--font-title);color:#1070b0;letter-spacing:-.02em}.fi-arrow{color:#1070b0;font-size:22px}.fi-where{font:700 26px/1.1 var(--font-title);color:#1070b0}
+.fi-logos{display:flex;align-items:center;gap:12px;flex:none}.fi-logos img.l{height:42px;width:auto}.fi-logos img.e{height:46px;width:auto}.fi-logos .logo-sep{width:1px;align-self:stretch;background:#3c3c3b;opacity:.25}
+.fi-keys{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:8px 0;border-bottom:1px solid #243570}.fi-key{display:flex;gap:14px;align-items:center;font-size:14px;line-height:1.35}.fi-key b{font:900 22px/1 var(--font-title);color:#1070b0}.fi-key:nth-child(2) b{color:#243570}
+.fi-ico{width:62px;height:62px;flex:none;color:#4397d1}.fi-key:nth-child(2) .fi-ico{color:#243570}
+.fi-two{display:grid;grid-template-columns:1fr 90px 1fr;gap:12px;align-items:center;font-size:13px}.fi-two ul{margin:6px 0 0;padding:0;list-style:none;line-height:1.5}.fi-two .fi-mid .fi-ico{width:84px;height:84px;color:#4397d1}.fi-n{font:900 22px/1 var(--font-title);color:#1070b0}.fi-two b{color:#243570}
+.fi-ns{font-size:9.5px;color:#3c3c3b}
+.fi-sec{display:flex;align-items:center;gap:10px;margin:2px 0}.fi-sec::before,.fi-sec::after{content:"";flex:1;height:1px;background:#1070b0}.fi-sec span{font:700 16px var(--font-title);color:#1070b0}
+.fi-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;flex:1}.fi-col h4{margin:12px 0 8px;font:800 12.5px/1.3 var(--font-title);color:#243570}.fi-col h4:first-child{margin-top:0}
+.fi-sx{display:grid;grid-template-columns:1fr auto;gap:8px 14px;align-items:center;padding-bottom:10px;border-bottom:1px solid #243570}.fi-sxr{display:flex;gap:10px;align-items:center;grid-column:1}.fi-sxr p{font-size:12px;line-height:1.3}.fi-sxr b{font:900 22px var(--font-title);color:#1070b0}
+.fi-pp{width:92px;height:34px;flex:none}.fi-ms{grid-column:2;grid-row:1/3;display:flex;flex-direction:column;align-items:center;text-align:center;font-size:11px;gap:2px;border-left:1px solid #243570;padding-left:12px}.fi-ms .fi-ico{width:48px;height:48px;color:#1070b0}.fi-ms b{font:900 18px var(--font-title);color:#243570}
+.fi-donuts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}.fi-donut{width:74px;height:74px}.fi-donuts small,.fi-taille small{display:block;font-size:10px;line-height:1.25}.fi-f{display:block;font:800 12px var(--font-title);color:#4397d1}
+.fi-taille{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px}.fi-taille b{display:block;font:900 22px var(--font-title);color:#1070b0}
+.fi-bars{display:flex;flex-direction:column;gap:7px}.fi-bt{display:flex;align-items:center;gap:8px;border-bottom:1px solid #3c3c3b;padding-bottom:1px}.fi-bt i{display:block;height:12px;min-width:2px}.fi-bt b{margin-left:auto;font:800 12px var(--font-title);color:#243570}.fi-bar small{display:block;font-size:10px;text-align:right;line-height:1.25}
+.fi-src{font-size:9px;line-height:1.4;color:#3c3c3b;border-top:1px solid #243570;padding-top:6px}.fi-miss{font-size:11px;color:#243570;background:#f4e6dc;border-radius:6px;padding:4px 8px}
+.fi-foot{margin-top:auto;border:1px solid #243570;border-radius:3px;padding:8px 12px;display:flex;gap:12px;align-items:center;font-size:9.5px;line-height:1.45;color:#4397d1}.fi-foot img{height:30px;width:auto;flex:none}.fi-bt i{flex:none}.fi-bt b{white-space:nowrap}.fi-foot i{margin-left:auto;font:900 11px var(--font-title);color:#243570;font-style:normal;max-width:150px;text-align:right}
+@page fiche{size:A4;margin:0}
+.fiche-page{page:fiche}
+@media print{.fiche-page{box-shadow:none;margin:0;break-after:page;page-break-after:always;-webkit-print-color-adjust:exact;print-color-adjust:exact}.fiche-page:last-child{break-after:auto}}
+
+.fi-bar.sub{margin-left:12px;margin-top:-3px}.fi-bar.sub .fi-bt i{height:7px}.fi-bar.sub small{font-size:8px}
 </style>
 </head>
 <body>
@@ -258,6 +282,7 @@ header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media
   <button data-v="dynamiques" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg><span>Dynamiques & causes</span></button>
   <div class="nav-group">Produire</div>
   <button data-v="publications" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M8 13h8M8 17h6"/></svg><span>Publications</span></button>
+  <button data-v="fiches" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h3"/></svg><span>Fiches territoire</span></button>
   <button data-v="expert" class="x-expert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4M12 17v4M3 12h4M17 12h4"/><path d="m6 6 2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/></svg><span>Expert ESS (IA)</span></button>
   <button data-v="annuaire" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 21V8l8-5 8 5v13"/><path d="M9 21v-6h6v6"/></svg><span>Annuaire des entreprises ESS</span></button>
   <button data-v="liste" class="x-expert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg><span>Liste des entreprises</span></button>
@@ -493,6 +518,12 @@ header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media
 </section>
 
 <!-- 5. PARAMÈTRES -->
+<section class="view" id="v-fiches">
+  <h2 class="vt">Fiche territoire</h2>
+  <p class="lead">Une page A4 « L’ESS en … » par région : poids de l’ESS, familles juridiques, emploi, femmes par catégorie socio-professionnelle, secteurs et taille des établissements. Tout est calculé à partir des données chargées, avec le secret statistique (NS). Relisez avant diffusion.</p>
+  <div id="fichesCtl"></div>
+  <div id="fichesOut"></div>
+</section>
 <section class="view" id="v-biblio">
   <h2 class="vt">Bibliothèque de publications</h2>
   <p class="lead">Études du réseau des CRESS, de l’Observatoire national de l’ESS et d’ESS France : repères de structure, sources mobilisées et points de comparaison. Ce sont des références, pas des données : l’Expert IA peut les interroger et cite le document et la page.</p>
@@ -23269,8 +23300,9 @@ function showView(v) {
   document.querySelectorAll('section.view').forEach((s) => s.classList.toggle('active', s.id === 'v-' + v));
   if (v === 'tableau' && state.rows.length) setTimeout(renderDashboard, 0);
   if (v === 'methodes' && window.ESS.renderMethodes) window.ESS.renderMethodes();
+  if (v === 'fiches' && window.ESS.renderFiches) window.ESS.renderFiches();
   if (v === 'biblio' && window.ESS.renderBiblio) { window.ESS.renderBiblio(); window.ESS.renderIndic(); }
-  if (!['donnees', 'parametres', 'aide', 'accueil', 'expert', 'contexte', 'annuaire', 'methodes', 'biblio'].includes(v) && !state.rows.length) { const sec = $('v-' + v); if (!sec.querySelector('.nodata')) sec.insertAdjacentHTML('afterbegin', '<div class="msg warn nodata">Chargez d’abord un fichier dans l’onglet « Données ».</div>'); }
+  if (!['donnees', 'parametres', 'aide', 'accueil', 'expert', 'contexte', 'annuaire', 'methodes', 'biblio', 'fiches'].includes(v) && !state.rows.length) { const sec = $('v-' + v); if (!sec.querySelector('.nodata')) sec.insertAdjacentHTML('afterbegin', '<div class="msg warn nodata">Chargez d’abord un fichier dans l’onglet « Données ».</div>'); }
   else document.querySelectorAll('.nodata').forEach((n) => n.remove());
 }
 function init() {
@@ -25049,6 +25081,128 @@ function renderIndic() {
   el.innerHTML = `<div class="card"><h3>Indicateurs de référence du réseau (${INDIC_ACT().length})</h3><p class="muted" style="margin-top:0">Ce que les publications du réseau mesurent et comment la donnée est exploitée. L’Expert IA s’en sert pour proposer les bons indicateurs, avec leur dénominateur, leur source et leurs précautions.</p>${INDIC_ACT().map((x) => `<details style="padding:6px 0;border-top:1px solid var(--line)"><summary><strong>${esc(x.nom)}</strong></summary><div style="padding:6px 0 2px;font-size:.93em"><p style="margin:2px 0"><strong>Calcul :</strong> ${esc(x.formule)}</p><p style="margin:2px 0"><strong>Dans l’outil :</strong> ${esc(x.outil)}</p><p style="margin:2px 0"><strong>Source :</strong> ${esc(x.source)}</p><p style="margin:2px 0"><strong>Exemple publié :</strong> ${esc(x.exemple)}</p><p style="margin:2px 0"><strong>Précaution :</strong> ${esc(x.precaution)}</p></div></details>`).join('')}<h4 style="margin:14px 0 4px">Conventions d’exploitation</h4><ul style="margin:0;padding-left:20px">${INDIC_CONV.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>`;
 }
 Object.assign(window.ESS, { INDIC_REF, renderIndic });
+
+/* ======================================================================
+   Fiche territoire : une page A4 « L'ESS en {territoire} {millésime} » calculée à partir des données chargées
+   (chiffres clés, familles juridiques, emploi, femmes par catégorie socio-professionnelle, secteurs, taille).
+   Couleurs de la charte CRESS uniquement ; secret statistique appliqué (NS = non significatif).
+   ====================================================================== */
+const FI_ICO = {
+  bat: '<svg viewBox="0 0 64 64" class="fi-ico"><rect x="14" y="6" width="36" height="52" rx="2" fill="none" stroke="currentColor" stroke-width="3"/>' + [0, 1, 2, 3].map((r) => [0, 1, 2].map((c) => `<rect x="${20 + c * 10}" y="${12 + r * 9}" width="6" height="5" fill="currentColor"/>`).join('')).join('') + '<rect x="27" y="46" width="10" height="12" fill="currentColor"/></svg>',
+  gens: '<svg viewBox="0 0 64 64" class="fi-ico"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="20" cy="14" r="6"/><path d="M20 22v16M12 30l8 4 8-4M20 38l-6 18M20 38l6 18"/><circle cx="44" cy="14" r="6"/><path d="M44 22v16M36 30l8 4 8-4M44 38l-6 18M44 38l6 18"/></g></svg>',
+  euro: '<svg viewBox="0 0 64 64" class="fi-ico"><path d="M22 14c4 4 16 4 20 0l-4-8H26z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M22 14C10 26 8 40 12 50c3 6 12 8 20 8s17-2 20-8c4-10 2-24-10-36" fill="none" stroke="currentColor" stroke-width="3"/><text x="32" y="46" text-anchor="middle" font-size="26" font-weight="800" fill="currentColor" font-family="Avenir,Arial,sans-serif">€</text></svg>',
+};
+const fiPerson = (x, fill) => `<g transform="translate(${x},0)" fill="${fill}"><circle cx="9" cy="6" r="5"/><path d="M1 38l3-20q1-5 5-5t5 5l3 20z"/></g>`;
+const FI_DANS = { 'Outre-mer': 'dans les Outre-mer', 'Grand Est': 'dans le Grand Est', 'Hauts-de-France': 'dans les Hauts-de-France', 'Pays de la Loire': 'dans les Pays de la Loire', 'Centre-Val de Loire': 'en Centre-Val de Loire' };
+const fiIn = (terr) => FI_DANS[terr] || OM_PREP[terr] || 'en ' + terr;
+const FI_PRETTY = [[/sante/gi, 'Santé'], [/activites/gi, 'Activités'], [/financieres/gi, 'financières'], [/peche/gi, 'pêche'], [/hebergement/gi, 'Hébergement'], [/hebergement/gi, 'Hébergement'], [/etablissement/gi, 'établissement'], [/medico-social/gi, 'médico-social'], [/classes/gi, 'classés'], [/Industrie\+construction/gi, 'Industrie et construction'], [/Arts spectacles/gi, 'Arts et spectacles'], [/Non-classés/gi, 'Non classés'], [/Non-classes/gi, 'Non classés'], [/Agriculture sylviculture/gi, 'Agriculture, sylviculture'], [/ et assurances/gi, ' et assurances']];
+const fiClean = (s) => { let x = String(s || '').replace(/\s*\([^)]*\)\s*$/, '').trim(); for (const [re, to] of FI_PRETTY) x = x.replace(re, to); return x.charAt(0).toUpperCase() + x.slice(1); };
+const fiPct = (a, b) => (b > 0 && a != null ? Math.round((a / b) * 100) : null);
+const fiShow = (v) => (v == null ? '—' : v < 1 && v > 0 ? '<1' : String(v).padStart(2, '0'));
+
+/** Lignes d'un territoire pour un croisement donné : le tableau (de base ou complémentaire) qui couvre le mieux l'ESS. */
+function fiRows(terr, t, need, measure = 'eff') {
+  const f = { t, geoLevel: 'geo1', geoValue: terr, famille: '', secteur: '' };
+  if (!need.length || need.every(baseHas)) return { rows: filt(f, null), tab: null };
+  let best = null; let bs = -1;
+  for (const tb of state.tables) {
+    if (!need.every((d) => tb.dims.includes(d))) continue; if (tb.years && tb.years.size && !tb.years.has(t)) continue;
+    const rows = filt(f, tb); const ess = rows.filter((r) => r.statut === 'ESS'); const sc = ess.reduce((a, r) => a + (r[measure] || 0), 0) + (tb.dims.includes('famille') ? 0 : 0.5);
+    if (ess.length && sc > bs) { bs = sc; best = { rows, tab: tb }; }
+  }
+  return best;
+}
+const fiBucketCsp = (k) => (/cadre|chef/i.test(k) ? 'Chefs d’entreprise et cadres' : /interm/i.test(k) ? 'Professions intermédiaires' : /employ|ouvri|non cod/i.test(k) ? 'Employés, ouvriers et non codés' : null);
+
+/** Typologie sectorielle régionale portée par la commande INSEE du millésime (feuille « Typologie_Rég »). */
+const fiNorm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9+ ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const fiCode = (s) => { const m = String(s || '').match(/\(([A-Za-z0-9+.\-]+)\)\s*$/); return m ? m[1].toLowerCase() : ''; };
+const FI_RULES = [[/agricult|sylvicult|peche/, /agricult/], [/industri|construct/, /industri/], [/hebergement et restauration|restauration/, /restauration/], [/soutien|specialis|scientifi/, /soutien/], [/commerce/, /^commerce/], [/financ|assurance/, /financ/], [/enseignement/, /^enseignement/], [/sante humaine|pour la sante/, /sante humaine/], [/action sociale|medico social/, /^action sociale/], [/arts|spectacle/, /^arts/], [/sport|loisir/, /^sport/], [/non class/, /non class/], [/divers/, /divers/]];
+function fiTypo(t) {
+  const cm = state.commandes || {}; const y = cm[t] ? t : Object.keys(cm).sort().filter((k) => k <= t).pop() || Object.keys(cm).sort().pop(); const c = y && cm[y]; if (!c) return null;
+  const key = Object.keys(c.typos || {}).find((k) => /^typologie_r/i.test(k)); if (!key) return null;
+  const items = c.typos[key].filter((x) => !/^ts secteurs/i.test(fiNorm(x.lib))).map((x, i) => ({ i, lib: x.lib, principal: !!x.principal, parent: x.parent, nl: fiNorm(x.lib), code: fiCode(x.lib), name: String(x.lib).replace(/\s*\(.*$/, '').toLowerCase().replace(/^./, (m) => m.toUpperCase()) }));
+  return items.length ? { year: y, key, items } : null;
+}
+function fiMatch(label, typ) {
+  const nl = fiNorm(label); const code = fiCode(label);
+  let m = typ.items.find((x) => x.nl === nl); if (m) return m;
+  if (code) { m = typ.items.find((x) => x.code && x.code === code); if (m) return m; }
+  for (const [rd, rp] of FI_RULES) if (rd.test(nl)) { m = typ.items.find((x) => x.principal && rp.test(x.nl)); if (m) return m; }
+  return null;
+}
+const FI_OM = () => { const have = new Set(state.rows.map((r) => r.geo1)); return Object.keys(OM_PREP).filter((x) => have.has(x)); };
+/** Lignes de plusieurs territoires (agrégat) : concatène les lignes de chaque territoire ; n = territoires couverts. */
+function fiRowsL(list, t, need, measure) {
+  let rows = []; let n = 0; for (const x of list) { const r = fiRows(x, t, need, measure); if (r) { rows = rows.concat(r.rows); n++; } }
+  return n ? { rows, n, of: list.length } : null;
+}
+function ficheData(terr, t) {
+  const list = terr === '__om' ? FI_OM() : [terr]; if (terr === '__om') terr = 'Outre-mer';
+  const D = { terr, t, miss: [], partial: [], list };
+  const base = list.flatMap((x) => filt({ t, geoLevel: 'geo1', geoValue: x, famille: '', secteur: '' }, null)); const c = cles(base); const ess = base.filter((r) => r.statut === 'ESS');
+  D.etab = c.ess.etab; D.eff = c.ess.eff; D.ms = c.ess.ms; D.poidsEtab = c.poidsEtabPriv; D.poidsEmp = c.hasPub || c.priv.n ? c.poidsPriv : null; D.ok = c.ess.n > 0;
+  const gf = groupBy(ess, (r) => dimVal(r, 'famille'));
+  D.fam = [...REF.familles, FAM_SC].filter((n) => gf.has(n)).map((n) => { const x = gf.get(n); return { n, etab: x.etab, eff: x.eff, sEff: isSecret(x) }; });
+  // sexe
+  const rs = fiRowsL(list, t, ['sexe']); if (rs && rs.n < rs.of) D.partial.push(`femmes / hommes : ${rs.n} territoires sur ${rs.of}`);
+  if (rs) { const g = groupBy(rs.rows.filter((r) => r.statut === 'ESS'), (r) => dimVal(r, 'sexe')); let fm = 0; let hm = 0; for (const [k, x] of g) { if (/^f/i.test(k)) fm += x.eff; else if (/^h/i.test(k)) hm += x.eff; } D.sexe = fm + hm > 0 ? { f: fm, h: hm } : null; }
+  else if (state.map.femmes && c.ess.eff) D.sexe = { f: c.ess.fem, h: c.ess.eff - c.ess.fem };
+  if (!D.sexe) D.miss.push('répartition femmes / hommes');
+  // femmes par CSP
+  const rc = fiRowsL(list, t, ['sexe', 'csp']); if (rc && rc.n < rc.of) D.partial.push(`catégories socio-professionnelles : ${rc.n} territoires sur ${rc.of}`);
+  if (rc) { const acc = {}; let tot = 0; for (const r of rc.rows.filter((x) => x.statut === 'ESS')) { const b = fiBucketCsp(r.csp); if (!b) continue; const e = (acc[b] = acc[b] || { eff: 0, fem: 0 }); e.eff += r.eff; if (/^f/i.test(r.sexe)) e.fem += r.eff; tot += r.eff; }
+    D.csp = ['Employés, ouvriers et non codés', 'Professions intermédiaires', 'Chefs d’entreprise et cadres'].filter((b) => acc[b] && tot > 0).map((b) => ({ n: b, share: fiPct(acc[b].eff, tot), fem: fiPct(acc[b].fem, acc[b].eff) })); }
+  if (!D.csp || !D.csp.length) { D.csp = null; D.miss.push('femmes par catégorie socio-professionnelle'); }
+  // secteurs
+  const gs = groupBy(ess, (r) => r.secteur); const typ = fiTypo(t); const acc = new Map();
+  for (const [k, x] of gs) { if (!k || /^ensemble|^ts secteurs|^total/i.test(k)) continue; const m = typ ? fiMatch(k, typ) : null; const id = m ? m.i : 'o:' + k; const e = acc.get(id) || { m, n: m ? m.name : fiClean(k), eff: 0, s: false }; e.eff += x.eff; e.s = e.s || isSecret(x); acc.set(id, e); }
+  const ents = [...acc.values()]; const princ = ents.filter((e) => !e.m || e.m.principal); const tsec = princ.reduce((a2, e) => a2 + e.eff, 0); D.sect = [];
+  princ.sort((a2, b2) => b2.eff - a2.eff).slice(0, 12).forEach((e, i) => { D.sect.push({ n: e.n, p: fiPct(e.eff, tsec), s: e.s, i }); if (e.m) ents.filter((u) => u.m && !u.m.principal && u.m.parent === e.m.lib).sort((a2, b2) => a2.m.i - b2.m.i).forEach((u) => D.sect.push({ n: u.n, p: fiPct(u.eff, tsec), s: u.s, sub: true, i })); });
+  D.typ = typ ? `typologie régionale de la commande INSEE ${typ.year}` : ''; if (!D.sect.length) D.miss.push('secteurs d’activité');
+  // taille
+  const rt = fiRowsL(list, t, ['taille'], 'w'); if (rt && rt.n < rt.of) D.partial.push(`taille des établissements : ${rt.n} territoires sur ${rt.of}`);
+  if (rt) { const g = groupBy(rt.rows.filter((r) => r.statut === 'ESS'), (r) => dimVal(r, 'taille')); const keys = orderKeys('taille', [...g.keys()].filter((k) => k && !/^total|^ensemble/i.test(k))); const tt = keys.reduce((a, k) => a + g.get(k).etab, 0); D.taille = keys.map((k) => ({ n: fiClean(String(k).replace(/^\d+\s*-\s*/, '')), p: fiPct(g.get(k).etab, tt) })).filter((x) => x.p != null && x.p > 0); }
+  if (!D.taille || !D.taille.length) { D.taille = null; D.miss.push('taille des établissements'); }
+  return D;
+}
+const fiMe = (x) => (x == null ? '—' : x >= 1e6 ? fDec(x / 1e6, x >= 1e8 ? 0 : 1) + NB + 'M€' : fInt(x) + NB + '€');
+function fiDonut(p, color) {
+  const r = 26; const C = 2 * Math.PI * r; const v = p == null ? 0 : Math.max(0, Math.min(100, p));
+  return `<svg viewBox="0 0 70 70" class="fi-donut"><circle cx="35" cy="35" r="${r}" fill="none" stroke="#4397d1" stroke-opacity=".25" stroke-width="9"/><circle cx="35" cy="35" r="${r}" fill="none" stroke="${color}" stroke-width="9" stroke-dasharray="${(C * v / 100).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 35 35)"/><circle cx="35" cy="35" r="17" fill="#3c3c3b"/><text x="35" y="40" text-anchor="middle" fill="#fff" font-size="14" font-weight="800" font-family="Avenir,Arial,sans-serif">${p == null ? '—' : p + '%'}</text></svg>`;
+}
+function ficheHTML(D, opts = {}) {
+  const nsF = (p, s) => (s ? 'NS' : p == null ? '—' : p + ' %');
+  const fam = D.fam.map((f) => ({ n: f.n, pe: fiPct(f.etab, D.etab), ps: f.sEff ? null : fiPct(f.eff, D.eff), s: f.sEff }));
+  const famLab = (n) => ({ Associations: 'd’associations', Coopératives: 'de coopératives', Mutuelles: 'de mutuelles', Fondations: 'de fondations' }[n] || 'de ' + n.toLowerCase());
+  const famLab2 = (n) => ({ Associations: 'dans les associations', Coopératives: 'dans les coopératives', Mutuelles: 'dans les mutuelles', Fondations: 'dans les fondations' }[n] || 'dans ' + n.toLowerCase());
+  const maxS = Math.max(1, ...D.sect.map((x) => x.p || 0));
+  const sexe = D.sexe && D.sexe.f + D.sexe.h > 0 ? { pf: Math.round(D.sexe.f / (D.sexe.f + D.sexe.h) * 100) } : null; if (sexe) sexe.ph = 100 - sexe.pf;
+  const row = (pf, fill) => { const n = Math.round(pf / 20); return '<svg viewBox="0 0 110 40" class="fi-pp">' + [0, 1, 2, 3, 4].map((i) => fiPerson(i * 22, i < n ? fill : '#4397d1')).join('') + '</svg>'; };
+  const head = `<div class="fi-head"><div class="fi-title"><span class="fi-big">L’ESS</span><span class="fi-arrow">▸</span><span class="fi-where">${esc(fiIn(D.terr))} ${esc(D.t)}</span></div><div class="fi-logos"><img class="l" src="${BRAND.cress}" alt="CRESS Mayotte"><span class="logo-sep"></span><img class="e" src="${BRAND.ess}" alt="ESS — L’économie en mieux"></div></div>`;
+  const key = `<div class="fi-keys"><div class="fi-key">${FI_ICO.bat}<p>L’économie sociale et solidaire représente<br><b>${D.poidsEtab == null ? '—' : Math.round(D.poidsEtab) + ' %'}</b> des établissements privés ${esc(fiIn(D.terr))}</p></div><div class="fi-key">${FI_ICO.gens}<p><b>${D.poidsEmp == null ? '—' : Math.round(D.poidsEmp) + ' %'}</b> de l’emploi privé ${esc(fiIn(D.terr))}</p></div></div>`;
+  const famBlock = `<div class="fi-two"><div><p>${esc(fiIn(D.terr)[0].toUpperCase() + fiIn(D.terr).slice(1))}, il existe<br><b class="fi-n">${fInt(D.etab)}</b> établissements de l’ESS${fam.length ? ' dont :' : ''}</p><ul>${fam.map((f) => `<li><b>${f.pe == null ? '—' : f.pe + ' %'}</b> ${famLab(f.n)}</li>`).join('')}</ul></div><div class="fi-mid">${FI_ICO.bat}</div><div><p>Ces structures représentent à elles seules<br><b class="fi-n">${fInt(D.eff)}</b> salarié·e·s${fam.length ? ' à hauteur de :' : ''}</p><ul>${fam.map((f) => `<li><b>${nsF(f.ps, f.s)}</b> ${famLab2(f.n)}</li>`).join('')}</ul></div></div><p class="fi-ns">NS : non significatif (secret statistique)</p>`;
+  const sec = `<div class="fi-sec"><span>ESS et emploi ${esc(fiIn(D.terr))}</span></div>`;
+  const left = `<div class="fi-col">${sexe ? `<div class="fi-sx"><div class="fi-sxr">${row(sexe.pf, '#243570')}<p><b>${sexe.pf}%</b><br>de femmes salariées dans l’ESS</p></div><div class="fi-sxr">${row(sexe.ph, '#243570')}<p><b>${sexe.ph}%</b><br>d’hommes salariés dans l’ESS</p></div><div class="fi-ms">${FI_ICO.euro}<b>${fiMe(D.ms)}</b><span>Masse salariale<br>brute annuelle</span></div></div>` : `<p class="fi-miss">Répartition femmes / hommes : donnée non chargée.</p>`}
+    ${D.csp ? `<h4>Part des femmes dans les catégories socio-professionnelles</h4><div class="fi-donuts">${D.csp.map((x, i) => `<div>${fiDonut(x.share, ['#4397d1', '#1070b0', '#243570'][i])}<span class="fi-f">${x.fem == null ? '' : '♀ ' + x.fem + '%'}</span><small>${esc(x.n)}</small></div>`).join('')}</div>` : ''}
+    ${D.taille ? `<h4>Répartition des établissements selon leur taille</h4><div class="fi-taille">${D.taille.map((x) => `<div><b>${x.p}%</b><small>${esc(x.n)}</small></div>`).join('')}</div>` : ''}</div>`;
+  const right = `<div class="fi-col"><h4>Répartition des salarié·e·s par secteur d’activité</h4><div class="fi-bars">${D.sect.map((x) => `<div class="fi-bar${x.sub ? ' sub' : ''}"><div class="fi-bt"><i style="width:${x.s ? 0 : Math.max(2, (x.p || 0) / maxS * 74)}%;background:${x.sub ? '#4397d1' : ['#4397d1', '#1070b0', '#243570', '#3c3c3b'][Math.min(x.i, 3)]}"></i><b>${x.s ? 'NS' : fiShow(x.p) + ' %'}</b></div><small>${x.sub ? '↳ ' : ''}${esc(x.n)}</small></div>`).join('') || '<p class="fi-miss">Secteurs : donnée non chargée.</p>'}</div></div>`;
+  const src = `<p class="fi-src">Source : ${esc(S.structure || 'Observatoire régional de l’ESS')}, d’après ${esc(srcName())} ${esc(D.t)}. ${D.typ ? `Secteurs : ${esc(D.typ)}. ` : ''}${D.list && D.list.length > 1 ? `Agrégat de ${D.list.length} territoires : ${esc(D.list.join(', '))}. ` : ''}Champ : établissements employeurs de l’ESS (${esc(REF.perimetres[S.perimetre].libelle)}). Les familles de très petite taille sont soumises au secret statistique.</p>`;
+  const miss = (D.miss.length ? `<p class="fi-miss noprint">Éléments non disponibles avec les tableaux chargés : ${esc(D.miss.join(', '))}.</p>` : '') + (D.partial && D.partial.length ? `<p class="fi-miss noprint">Agrégat partiel (tableaux chargés pour une partie des territoires seulement) : ${esc(D.partial.join(' ; '))}.</p>` : '');
+  const foot = `<div class="doc-foot fi-foot"><img src="${BRAND.picto}" alt=""><span>${esc(BRAND.nom)} — ${esc(BRAND.adresse)}<br>${esc(BRAND.siret)} · ${esc(BRAND.mail)} · ${esc(BRAND.tel)} · ${esc(BRAND.web)}</span><i>${esc(BRAND.tagline)}</i></div>`;
+  return `<article class="fiche-page">${head}${key}${famBlock}${sec}<div class="fi-grid">${left}${right}</div>${src}${miss}${foot}</article>`;
+}
+function fichesTerrs() { const set = new Set(state.rows.map((r) => r.geo1).filter(Boolean)); return [...set].filter((x) => !/^france|^outre|^ensemble|^total/i.test(x)).sort((a, b) => a.localeCompare(b, 'fr')); }
+function renderFiches() {
+  const box = $('fichesCtl'); if (!box) return;
+  if (!state.rows.length) { box.innerHTML = '<div class="card"><p class="muted" style="margin:0">Chargez d’abord les données FLORES (onglet Données).</p></div>'; $('fichesOut').innerHTML = ''; return; }
+  const terrs = fichesTerrs(); const times = state.times.slice().sort().reverse(); const cur = box.dataset.t || times[0]; const ct = box.dataset.terr || terrs[0];
+  box.innerHTML = `<div class="card noprint"><div class="row"><div><label class="f">Territoire</label><select id="fiTerr">${terrs.map((x) => `<option${x === ct ? ' selected' : ''}>${esc(x)}</option>`).join('')}${FI_OM().length > 1 ? `<option value="__om"${ct === '__om' ? ' selected' : ''}>Outre-mer — agrégat (${FI_OM().length} territoires)</option>` : ''}<option value="__all"${ct === '__all' ? ' selected' : ''}>Toutes les régions (un document)</option></select></div><div><label class="f">Millésime</label><select id="fiT">${times.map((x) => `<option${x === cur ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select></div><button class="b primary" id="fiGo">Générer la fiche</button><button class="b" id="fiPrint" disabled>Imprimer / PDF</button></div></div>`;
+  $('fiGo').onclick = () => { box.dataset.terr = $('fiTerr').value; box.dataset.t = $('fiT').value; const t = $('fiT').value; const list = $('fiTerr').value === '__all' ? (FI_OM().length > 1 ? ['__om', ...terrs] : terrs) : [$('fiTerr').value];
+    try { const pages = list.map((x) => ficheData(x, t)).filter((d) => d.ok).map((d) => ficheHTML(d)); $('fichesOut').innerHTML = pages.length ? pages.join('') : '<div class="card"><p class="muted" style="margin:0">Aucune donnée pour ce territoire et ce millésime.</p></div>'; $('fiPrint').disabled = !pages.length; } catch (e) { err(e); } };
+  $('fiPrint').onclick = () => { const s = $('v-fiches'); s.classList.add('printing'); window.print(); setTimeout(() => s.classList.remove('printing'), 500); };
+}
+Object.assign(window.ESS, { ficheData, ficheHTML, renderFiches });
 
 /* ======================================================================
    Dossier partagé (SharePoint / OneDrive / Drive synchronisé sur l'ordinateur).
