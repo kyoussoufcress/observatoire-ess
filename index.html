@@ -22286,7 +22286,7 @@ function renderTablesPanel(ign = [], refMsg = '') {
   const cb = $('cacheClear'); if (cb) cb.onclick = async () => { await cClear(); cb.textContent = 'Mémoire locale vidée'; };
 }
 // --- Cache local des fichiers déjà lus (IndexedDB) : un fichier inchangé n'est ni téléchargé ni relu -----------------
-const CACHE_VER = '17';
+const CACHE_VER = '18';
 const cdb = () => new Promise((res, rej) => { const o = indexedDB.open('ess_cache', 1); o.onupgradeneeded = () => o.result.createObjectStore('u'); o.onerror = () => rej(o.error); o.onsuccess = () => res(o.result); });
 async function cGet(k) { try { const db = await cdb(); return await new Promise((res) => { const r = db.transaction('u').objectStore('u').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); } catch { return null; } }
 async function cPut(k, v) { try { const db = await cdb(); await new Promise((res) => { const t = db.transaction('u', 'readwrite'); t.objectStore('u').put(v, k); t.oncomplete = res; t.onerror = res; t.onabort = res; }); } catch { /* cache indisponible */ } }
@@ -25820,7 +25820,7 @@ const paShare = (a, b) => (b > 0 ? a / b * 100 : null);
 const paSrc = (t) => `Source : Insee, FLORES ${t} (postes au 31 décembre).`;
 /** Taille des établissements : ESS comparée au privé hors ESS (et au public si présent). */
 function paTaille(f, t) {
-  if (f.geoLevel !== 'geo1' || !f.geoValue) return []; const tab = paTabs(['taille', 'statut'], 'reg', t)[0]; if (!tab) return [];
+  if (f.geoLevel !== 'geo1' || !f.geoValue) return []; const tab = paTabs(['taille', 'statut'], 'reg', t)[0]; if (!tab) return paTailleESS(f, t);
   const rows = paRows(tab, t, { geo1: f.geoValue }).filter((r) => r.taille && PA_ST.includes(r.statut)); if (!rows.length) return [];
   const tailles = [...new Set(rows.map((r) => r.taille))]; const S = {}; for (const st of PA_ST) { const rs = rows.filter((r) => r.statut === st); if (rs.length) S[st] = { tot: paSum(rs), by: Object.fromEntries(tailles.map((k) => [k, paSum(rs.filter((r) => r.taille === k))])) }; }
   if (!S.ESS) return []; const sts = PA_ST.filter((s) => S[s]); const small = tailles.find((k) => /moins de 10|^0|1 à 9/i.test(k)) || tailles[0];
@@ -25828,6 +25828,15 @@ function paTaille(f, t) {
   docs.push(B.p(`${fPct(paShare(S.ESS.by[small].etab, S.ESS.tot.etab))} des établissements employeurs de l’ESS comptent ${small.toLowerCase()}${S['Privé hors ESS'] ? `, contre ${fPct(paShare(S['Privé hors ESS'].by[small].etab, S['Privé hors ESS'].tot.etab))} dans le privé hors ESS` : ''}. ${(() => { const big = tailles.filter((k) => /^(50|250|plus)/i.test(k)); if (!big.length) return ''; const e = big.reduce((s, k) => s + S.ESS.by[k].eff, 0); const p = S['Privé hors ESS'] ? big.reduce((s, k) => s + S['Privé hors ESS'].by[k].eff, 0) : null; return `Les établissements de 50 salariés et plus concentrent ${fPct(paShare(e, S.ESS.tot.eff))} des emplois de l’ESS${p != null ? `, contre ${fPct(paShare(p, S['Privé hors ESS'].tot.eff))} dans le privé hors ESS` : ''}.`; })()}`));
   docs.push(B.table('Tableau — Répartition des établissements et des salariés par taille', ['Taille', ...sts.map((s) => `Établissements : ${s}`), ...sts.map((s) => `Salariés : ${s}`)], tailles.map((k) => [k, ...sts.map((s) => fPct(paShare(S[s].by[k].etab, S[s].tot.etab))), ...sts.map((s) => fPct(paShare(S[s].by[k].eff, S[s].tot.eff)))]), null, paSrc(t) + (sts.some((s) => S[s].tot.s) ? ' Cases sous secret statistique exclues du calcul.' : '')));
   return docs;
+}
+/** Taille des établissements, ESS seule (tableaux FLORES 2021 sans statut) : répartition par taille et par famille. */
+function paTailleESS(f, t) {
+  const tab = state.tables.filter((x) => x.dims.includes('taille') && x.level === 'reg' && (!x.years || !x.years.size || x.years.has(t)))[0]; if (!tab) return [];
+  const rows = paRows(tab, t, { geo1: f.geoValue }).filter((r) => r.taille && !/^(ensemble|total)/i.test(r.taille)); if (!rows.length) return [];
+  const tailles = [...new Set(rows.map((r) => r.taille))]; const tot = paSum(rows); if (tot.etab <= 0) return [];
+  const by = Object.fromEntries(tailles.map((k) => [k, paSum(rows.filter((r) => r.taille === k))])); const top = tailles.slice().sort((a, b) => by[b].eff - by[a].eff)[0];
+  return [B.h2('La taille des établissements de l’ESS'), B.p(`Les établissements de ${top.toLowerCase()} concentrent ${fPct(paShare(by[top].eff, tot.eff))} des emplois salariés de l’ESS (${fPct(paShare(by[top].etab, tot.etab))} des établissements). La comparaison avec le privé hors ESS n’est pas possible : les tableaux chargés ne portent que sur l’ESS.`),
+    B.table('Tableau — Répartition des établissements et des salariés de l’ESS par taille', ['Taille', 'Établissements', 'Part des établissements', 'Salariés', 'Part des salariés'], tailles.map((k) => [k, fInt(by[k].etab), fPct(paShare(by[k].etab, tot.etab)), fInt(by[k].eff), fPct(paShare(by[k].eff, tot.eff))]), null, paSrc(t) + ' Cases sous secret statistique exclues du calcul.')];
 }
 /** Femmes et catégories socio-professionnelles : ESS comparée aux autres économies. */
 function paSexe(f, t) {
