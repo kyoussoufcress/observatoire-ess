@@ -26185,7 +26185,7 @@ async function onBoot() {
   let cfg; try { const r = await fetch('config.json', { cache: 'no-store' }); if (!r.ok) return; cfg = await r.json(); } catch { return; }
   if (!cfg.clientId || !cfg.tenant || !(cfg.lienDossier || cfg.urlDossier)) return;
   ON.cfg = Object.assign({ dossierBases: 'Bases', dossierConsultation: 'Consultation' }, cfg); ON.active = true;
-  const gate = $('gate'); gate.classList.remove('hide'); $('gateMsg').textContent = '';
+  const gate = $('gate'); $('gateMsg').textContent = '';
   const M = msLib(); ON.app = new M.PublicClientApplication({ auth: { clientId: cfg.clientId, authority: `https://login.microsoftonline.com/${cfg.tenant}`, redirectUri: location.origin + location.pathname }, cache: { cacheLocation: 'localStorage' } });
   await ON.app.initialize(); try { await ON.app.handleRedirectPromise(); } catch { /* retour de connexion invalide */ }
   const go = async () => {
@@ -26194,12 +26194,25 @@ async function onBoot() {
       ON.acct = ON.app.getAllAccounts()[0];
       if (!ON.acct) { await ON.app.loginRedirect({ scopes: ['Files.Read.All', 'Sites.Read.All'], prompt: 'select_account', extraQueryParameters: { domain_hint: ON.cfg.domaine || 'organizations' } }); ON.acct = ON.app.getAllAccounts()[0]; if (!ON.acct) return; } // connexion dans la même fenêtre (évite le blocage des fenêtres surgissantes)
       await onResolve();
-      try { await onChildren(ON.cfg.dossierBases); ON.expert = true; } catch (e) { if (e.status !== 403 && e.status !== 404) throw e; ON.expert = false; }
+      const adm = (ON.cfg.admins || []).map((x) => String(x).toLowerCase()); const okAdm = !adm.length || adm.includes(String(ON.acct.username || '').toLowerCase());
+      try { if (!okAdm) throw Object.assign(new Error('non administrateur'), { status: 403 }); await onChildren(ON.cfg.dossierBases); ON.expert = true; } catch (e) { if (e.status !== 403 && e.status !== 404) throw e; ON.expert = false; }
       if (ON.expert) await onStartExpert(); else await onStartConsult();
       gate.classList.add('hide');
     } catch (e) { $('gateBtn').disabled = false; $('gateMsg').innerHTML = `<div class="msg warn">${esc(String(e.message || e).slice(0, 300))}</div>`; }
   };
-  $('gateBtn').onclick = go; if (ON.app.getAllAccounts().length) go();
+  $('gateBtn').onclick = go;
+  /* Accès public (sans connexion) : résultats agrégés publiés à côté de la page (public/resultats.js). L'accès administrateur passe par Entra (#admin ou session déjà ouverte). */
+  const wantAdmin = location.hash === '#admin' || ON.app.getAllAccounts().length > 0;
+  if (!wantAdmin && cfg.accesPublic === true) {
+    try {
+      const url = cfg.publicResultats || 'public/resultats.js'; const r = await fetch(url, { cache: 'no-store' });
+      if (r.ok) { window.ESS.setConsult(onStripJs(await r.text(), 'ESS_CONSULT')); window.ESS.startConsultation();
+        $('navFoot').insertAdjacentHTML('afterbegin', '<div style="margin-bottom:8px"><a href="#admin" id="admLink" style="color:inherit">Accès administrateur</a></div>');
+        $('admLink').onclick = (e) => { e.preventDefault(); location.hash = '#admin'; location.reload(); }; return; }
+    } catch (e) { console.warn('accès public indisponible', e); }
+  }
+  gate.classList.remove('hide');
+  if (location.hash === '#admin' || ON.app.getAllAccounts().length) go();
 }
 onBoot().catch((e) => console.error(e));
 </script>
