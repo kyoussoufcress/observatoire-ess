@@ -1,0 +1,10 @@
+{
+  "clientId": "IDENTIFIANT-DE-L-APPLICATION-ENTRA",
+  "tenant": "IDENTIFIANT-DU-LOCATAIRE-ou-cressmayotteorg.onmicrosoft.com",
+  "lienDossier": "https://cressmayotteorg.sharepoint.com/:f:/g/operationnel/IgAQe5anyLklR6eP9i5XDnDfAZdDYY9fWsfMzZIPiS_rRtI?e=QkgLKj",
+  "dossierBases": "Data",
+  "dossierConsultation": "Ressources ESS/Consultation",
+  "admins": ["prenom.nom@votre-domaine.fr"],
+  "accesPublic": false,
+  "publicResultats": "public/resultats.js"
+}
