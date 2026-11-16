@@ -24062,7 +24062,7 @@ const _renderPubFiltersBase = renderPubFilters;
 renderPubFilters = function () {
   _renderPubFiltersBase();
   const sel = $('pubType'); const hasF = state.rows.length > 0; const quarterly = state.timeType === 'trimestre';
-  const grpF = [['panorama', 'Panorama de l’ESS rédigé'], ['panorama_om', 'Panorama multi-territoires (format Outre-mer)'], ['portrait', 'Portrait de territoire'], ['epci', 'Diagnostic intercommunal (EPCI)'], ['sectorielle', 'Étude sectorielle'], ['comparatif', 'Analyse comparative des territoires'], ['chiffre', 'Fiche « chiffre clé »']];
+  const grpF = [['panorama', 'Panorama de l’ESS rédigé'], ['panorama_om', 'Panorama multi-territoires (format Outre-mer)'], ['portrait', 'Portrait de territoire'], ['thematique', 'Panorama thématique : ce que l’ESS apporte'], ['epci', 'Diagnostic intercommunal (EPCI)'], ['sectorielle', 'Étude sectorielle'], ['comparatif', 'Analyse comparative des territoires'], ['chiffre', 'Fiche « chiffre clé »']];
   const grpU = [['conjoncture', 'Note de conjoncture rédigée']]; if (quarterly) grpU.push(['diagnostic', 'Diagnostic territorial (portrait + dynamiques)'], ['dynamiques', 'Analyse des dynamiques et des causes']);
   const opt = (l) => l.map(([v, t]) => `<option value="${v}">${t}</option>`).join('');
   const cur = sel.value; sel.innerHTML = `<optgroup label="Structure de l’ESS · données FLORES (Insee, annuel)">${opt(grpF)}</optgroup><optgroup label="Conjoncture · séries Acoss-Urssaf (trimestriel)">${opt(grpU)}</optgroup>`;
@@ -24086,6 +24086,7 @@ function generateFromPubInner() {
     case 'panorama_om': docs = buildPanoramaOM(t); break;
     case 'portrait': docs = buildPortrait(f); break;
     case 'epci': docs = ESS.buildEpci($('pubEpci').value, t); break;
+    case 'thematique': docs = [B.bandeau(`Panorama thématique · ${t}`), B.h1(`Ce que l’ESS apporte ${prep(terrName(f))}`), ...ESS.buildThematique(f, t), ...methodoBlocks(t)]; break;
     case 'diagnostic': if (!f.geoLevel) { docs = [B.h1('Choisissez un territoire'), B.p('Le diagnostic porte sur un territoire précis.')]; break; } docs = buildDiagnostic(f, t0 || compatTimes(t)[0], t); break;
     case 'sectorielle': docs = buildSectorielle(t, $('pubSecteur').value, f); break;
     case 'comparatif': docs = buildComparatif(t, f.geoLevel === 'geo1' && state.map.geo2 ? 'geo2' : 'geo1', t0 || compatTimes(t)[0]); break;
@@ -24094,8 +24095,8 @@ function generateFromPubInner() {
   }
   { const t0q = (['diagnostic', 'comparatif', 'dynamiques'].includes(type) && t0) || (type === 'conjoncture' ? prevYear(t) : compatTimes(t)[0]) || t;
     const evs = ['portrait', 'panorama_om', 'sectorielle', 'chiffre'].includes(type);
-    const bq = type === 'epci' ? [] : blocQualitatif(f, t0q, t, { events: evs }); if (bq.length) insertBeforeMethodo(docs, bq); }
-  const names = { epci: 'Diagnostic_intercommunal_ESS', panorama: 'Panorama_ESS', panorama_om: 'Panorama_ESS_multi_territoires', conjoncture: 'Note_conjoncture_ESS', portrait: 'Portrait_ESS', diagnostic: 'Diagnostic_ESS', sectorielle: 'Etude_sectorielle_ESS', comparatif: 'Analyse_comparative_ESS', dynamiques: 'Analyse_dynamiques_ESS', chiffre: 'Chiffre_cle_ESS' };
+    const bq = type === 'epci' || type === 'thematique' ? [] : blocQualitatif(f, t0q, t, { events: evs }); if (bq.length) insertBeforeMethodo(docs, bq); }
+  const names = { thematique: 'Panorama_thematique_ESS', epci: 'Diagnostic_intercommunal_ESS', panorama: 'Panorama_ESS', panorama_om: 'Panorama_ESS_multi_territoires', conjoncture: 'Note_conjoncture_ESS', portrait: 'Portrait_ESS', diagnostic: 'Diagnostic_ESS', sectorielle: 'Etude_sectorielle_ESS', comparatif: 'Analyse_comparative_ESS', dynamiques: 'Analyse_dynamiques_ESS', chiffre: 'Chiffre_cle_ESS' };
   generatePublication(docs, `${names[type]}_${type === 'sectorielle' ? normKey($('pubSecteur').value).slice(0, 30) + '_' : ''}${n}_${t}`);
 }
 
@@ -24240,7 +24241,7 @@ function iaSystemPrompt() {
 
 PÉRIMÈTRE ACTUEL DU PROJET
 Les données de référence sont FLORES ; les séries de conjoncture (Urssaf) s’ajoutent dès qu’elles sont chargées. Sans précision de territoire, l’échelon par défaut est l’Outre-mer (agrégat des DROM). Pour toute question de conjoncture (emplois, solde net, glissement annuel, salaire moyen par tête, par famille, secteur, région, département, Outre-mer) : appeler conjoncture_urssaf, jamais calculer_evolution sur FLORES. Les calculs d’évolution (taux d’accroissement, coefficient multiplicateur, TCAM, glissement annuel ou trimestriel, comparaison ESS / privé hors ESS) se font avec calculer_evolution, à toute échelle géographique, uniquement sur les séries Urssaf de la note de conjoncture, jamais sur FLORES. Ne propose pas la liste des entreprises (Sirene) ni d’autre source non chargée, sauf si la personne le demande. Les publications du réseau (Panorama, etc.) peuvent mentionner ces sources : elles servent d’inspiration pour la structure, le vocabulaire et le choix des indicateurs, pas de promesse de données disponibles.
-Avant de concevoir ou de générer un livrable, appelle modeles_livrables et consulter_publications pour t’inspirer de l’ensemble des documents du dossier des livrables, pas d’un seul : le Panorama n’est qu’un exemple parmi d’autres formats.
+Avant de rédiger un panorama, une note de conjoncture, un panorama thématique ou un diagnostic territorial, appelle referentiel_productions : il donne la structure, les règles et la source de données des productions de référence (ESS France, CRESS Île-de-France et Occitanie, diagnostic de Royan) et la disponibilité réelle des données chargées ; suis cette grammaire, signale ce que les données ne permettent pas et ne comble jamais un manque par un chiffre inventé. Avant de concevoir ou de générer un livrable, appelle modeles_livrables et consulter_publications pour t’inspirer de l’ensemble des documents du dossier des livrables, pas d’un seul : le Panorama n’est qu’un exemple parmi d’autres formats.
 
 SOURCES ET LIMITES (à appliquer dans toute réponse)
 - FLORES (Insee) : photographie annuelle de l’emploi salarié et des rémunérations, localisée jusqu’à la commune, tous employeurs (public, privé, particuliers employeurs, mis hors champ dans les commandes du réseau), hors Armées, hors Mayotte. Effectifs = postes présents la dernière semaine de décembre ; ETP et rémunérations brutes sont annuels : ne jamais faire de ratio entre les effectifs de fin d’année et la masse salariale annuelle (rémunération moyenne = masse salariale / ETP). Dégroupement automatique des effectifs entre siège et établissements : fluctuations locales notables en banque, assurance, santé, hébergement médico-social. Périmètre ESS révisé en 2021 (hors APE 84). Les formules d’évolution (taux d’accroissement, TCAM, glissement) ne s’appliquent PAS aux données FLORES.
@@ -24375,7 +24376,7 @@ const IA_TOOLS = [
       tri: { type: 'string', enum: ['effectif', 'variation_hausse', 'variation_baisse', 'nom'] }, limite: { type: 'integer' } } },
     run: (a) => iaEtablissements(a) },
   { name: 'generer_publication', description: 'Génère une publication de l’observatoire (affichée dans l’onglet Publications, exportable en Word, PDF et Excel) et renvoie son contenu pour relecture.',
-    schema: { type: 'object', properties: { type: { type: 'string', enum: ['panorama', 'panorama_om', 'conjoncture', 'portrait', 'diagnostic', 'sectorielle', 'comparatif', 'dynamiques', 'chiffre'] }, periode: { type: 'string' }, depuis: { type: 'string' }, territoire_niveau: { type: 'string', enum: ['geo1', 'geo2', 'geo3'] }, territoire: { type: 'string' }, secteur: { type: 'string' } }, required: ['type'] },
+    schema: { type: 'object', properties: { type: { type: 'string', enum: ['panorama', 'panorama_om', 'thematique', 'epci', 'conjoncture', 'portrait', 'diagnostic', 'sectorielle', 'comparatif', 'dynamiques', 'chiffre'] }, periode: { type: 'string' }, depuis: { type: 'string' }, territoire_niveau: { type: 'string', enum: ['geo1', 'geo2', 'geo3'] }, territoire: { type: 'string' }, secteur: { type: 'string' } }, required: ['type'] },
     run: (a) => iaPublication(a) },
   { name: 'lire_publication_courante', description: 'Renvoie le texte de la publication actuellement affichée dans l’onglet Publications, pour relecture experte.', schema: { type: 'object', properties: {} },
     run: () => (currentDoc ? blocksToText(currentDoc.docs) : 'Aucune publication affichée.') },
@@ -25883,6 +25884,79 @@ function buildEpci(name, t) {
   return docs;
 }
 Object.assign(window.ESS, { panoExtra, buildEpci, paEpciList });
+
+/* ===== Référentiel des productions de référence (ESS France, CRESS IDF, CRESS Occitanie, diagnostic territorial de Royan) =====
+   Donne à l'assistant la grammaire de ces livrables (structure, ordre, éléments obligatoires, règles d'écriture) et produit le panorama thématique
+   « ce que l'ESS apporte à la société » à partir des tableaux FLORES chargés. Données annuelles : aucune évolution calculée ici. */
+const REF_PROD = {
+  note_conjoncture: {
+    modeles: 'Note de conjoncture ESS France T4 2025 (Acoss-Urssaf) ; note de conjoncture CRESS Île-de-France 2023.',
+    source: 'Acoss-Urssaf (séries trimestrielles brutes), jamais FLORES. Outil : generer_publication type « conjoncture » ou conjoncture_urssaf.',
+    structure: ['Titre-message + chapeau chiffré (emplois, glissement annuel, solde net, ESS vs privé hors ESS)', 'Chiffres clés : effectifs, nombre d’établissements, salaire moyen par tête (SMPT)', 'Évolution trimestrielle de l’emploi (courbe ESS / privé hors ESS) avec lecture de la tendance et des phases', 'Détail par famille (associations, coopératives, mutuelles, fondations) et par secteur', 'Détail par territoire (régions, départements) ; pour l’Outre-mer : chaque DROM et l’agrégat', 'Salaire moyen par tête comparé à l’inflation (évolution réelle)', 'Éléments de contexte sourcés, seulement si demandés', 'Méthode, champ (régime général hors MSA), limites, sources'],
+    regles: ['Glissement annuel = T / T−4 (séries brutes) ; ne jamais comparer deux trimestres consécutifs en brut', 'Taux d’accroissement = (final − initial) / initial ; solde net = final − initial ; TCAM = (final / initial)^(1/n) − 1', 'Ne jamais additionner des taux ; additionner les effectifs puis recalculer', 'Dire quelle série est utilisée (brut ou CVS) et quel fichier'],
+  },
+  panorama_flores: {
+    modeles: 'Panorama CRESS Île-de-France 2024 ; panorama régional Occitanie 2024 ; Panorama ESS France 2022 (partie « Travailler dans l’ESS » et « Au service des territoires »).',
+    source: 'FLORES (Insee), un seul millésime à la fois, photographie annuelle au 31 décembre. Outil : generer_publication type « panorama » (+ « portrait », « epci », « sectorielle », « comparatif »).',
+    structure: ['Chiffres clés (salariés, établissements, poids dans l’emploi privé et dans l’emploi total, part des femmes)', 'Répartition par famille juridique', 'Répartition par secteur d’activité et poids de l’ESS dans chaque secteur', 'Taille des établissements : ESS comparée au privé hors ESS', 'Conditions d’emploi : CDI, temps partiel, rémunération brute par ETP, comparaison avec le privé hors ESS et le public', 'Femmes et catégories socio-professionnelles', 'Départements, puis intercommunalités', 'Ce que l’ESS apporte (panorama thématique par grands domaines d’activité)', 'Méthode, périmètre, secret statistique, sources'],
+    regles: ['Aucune formule d’évolution sur FLORES : c’est une photographie annuelle', 'Ne jamais mélanger deux millésimes dans un même tableau sans l’annoncer ; périmètre 2021 (APE 84 exclue) ≠ périmètre 2012', 'Poids dans l’emploi privé et poids dans l’emploi total sont deux indicateurs distincts, à étiqueter', 'Secret statistique : cases « s » jamais recalculées par différence', 'Mayotte n’est pas couverte par FLORES : le dire'],
+  },
+  panorama_thematique: {
+    modeles: 'Panorama ESS France 2022 « Ce que l’ESS apporte à la société » : une double page par raison d’agir (publics vulnérables, bien vieillir, petite enfance, handicap, soins, aléas de la vie, finance, entreprises, alimentation, numérique, emploi, énergies, habitat, vacances, sport, culture, éducation).',
+    source: 'FLORES pour les chiffres d’emploi par secteur ; le contexte (besoins, politiques publiques, initiatives) vient d’autres sources citées (Insee, Drees, Dares, têtes de réseau) et d’exemples locaux fournis par le CRESS.',
+    structure: ['Édito et définition légale (loi du 31 juillet 2014)', 'Les familles : associations, coopératives, mutuelles, fondations, sociétés commerciales', 'Une page par thème : paragraphe d’enjeu, 3 à 5 chiffres clés (emploi ESS, poids dans le secteur, établissements), un encadré « initiative locale » nommée et sourcée', 'Travailler dans l’ESS : CDI, temps partiel, rémunération, égalité femmes-hommes, départs en retraite', 'L’ESS au service des territoires : ruralité, quartiers prioritaires, cartes régionales', 'Bibliographie et notes de bas de page numérotées'],
+    regles: ['Un chiffre par message, la source en note, jamais de chiffre non sourcé', 'FLORES ne donne que des secteurs agrégés : le rattachement secteur → thème est indicatif et doit être annoncé', 'Les initiatives locales ne s’inventent pas : les demander au CRESS ou les marquer « à compléter »'],
+  },
+  diagnostic_territorial: {
+    modeles: 'Diagnostic territorial de Royan (CARA), octobre 2023.',
+    source: 'FLORES infra-départemental (EPCI, communes) + Sirene ; tableau ID_1 pour les intercommunalités. Outil : generer_publication type « epci ».',
+    structure: ['Contexte et périmètre du territoire', 'Poids et profil de l’ESS (emplois, établissements, familles)', 'Secteurs d’activité dominants et spécificités par rapport au département et à la région', 'Taille des structures, emploi féminin', 'Enjeux et pistes d’action pour la collectivité (à partir des constats, au conditionnel)', 'Méthode et sources'],
+    regles: ['Comparer toujours le territoire à son département, sa région et la France', 'Petits effectifs : respecter le secret statistique et préférer les parts aux volumes', 'Les enjeux et pistes sont des hypothèses, jamais des constats'],
+  },
+};
+const refNorm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+/** Rattachement indicatif secteur FLORES → raison d'agir (ordre important). */
+const REF_THEMES = [
+  { k: 'social', t: 'Aider les publics vulnérables, accompagner le vieillissement, la petite enfance et le handicap', re: /action sociale|medico-social|social et action/, enjeu: 'Associations, fondations et mutuelles gèrent une grande part de l’aide à domicile, de l’hébergement social et médico-social, des crèches et de l’accompagnement du handicap.' },
+  { k: 'sante', t: 'Permettre d’accéder aux soins', re: /sante|activites pour la sante/, enjeu: 'Mutualité, centres de santé associatifs, établissements de soins privés non lucratifs : l’ESS contribue à l’accès aux soins pour toutes et tous.' },
+  { k: 'fin', t: 'Protéger face aux aléas de la vie et financer autrement l’économie', re: /financ|assurance/, enjeu: 'Mutuelles d’assurance, banques coopératives et finance solidaire : une économie de la protection et du financement au service des personnes.' },
+  { k: 'eco', t: 'Soutenir et accompagner les entreprises', re: /soutien aux entreprises|activites specialisees|services administratifs/, enjeu: 'Coopératives d’activité et d’emploi, groupements d’employeurs, structures d’appui à la création et à l’insertion par l’activité économique.' },
+  { k: 'edu', t: 'Éduquer et s’engager', re: /enseignement/, enjeu: 'Enseignement privé associatif, éducation populaire, formation et accompagnement vers l’emploi.' },
+  { k: 'cult', t: 'Démocratiser la culture', re: /arts|spectacle/, enjeu: 'Associations culturelles, compagnies, lieux de diffusion et d’éducation artistique.' },
+  { k: 'sport', t: 'S’émanciper par le sport et les loisirs', re: /sport|loisir/, enjeu: 'Clubs, fédérations et associations de loisirs : un maillage de proximité qui repose beaucoup sur l’engagement bénévole.' },
+  { k: 'vac', t: 'Rendre les vacances, les voyages et l’alimentation accessibles', re: /hebergement et restauration|hebergement, et restauration|restauration/, enjeu: 'Tourisme social et solidaire, villages vacances associatifs, restauration collective et solidaire.' },
+  { k: 'prod', t: 'Produire, construire et cultiver autrement', re: /industrie|construction|agricult|commerce/, enjeu: 'Coopératives agricoles, SCOP industrielles et du bâtiment, commerce coopératif et équitable, réemploi.' },
+];
+const refTheme = (sect) => { const n = refNorm(sect); return REF_THEMES.find((x) => x.re.test(n)) || null; };
+/** Panorama thématique (FLORES). */
+function buildThematique(f, t) {
+  const rows = filt({ ...f, t }).filter((r) => r.secteur && r.secteur !== 'Non renseigné'); const docs = [];
+  if (!rows.length) return [B.h2('Ce que l’ESS apporte à la société'), B.p('Aucune donnée sectorielle pour ce territoire et cette période.')];
+  const hasPub = rows.some((r) => r.statut === 'Public'); const G = {};
+  for (const r of rows) { const th = refTheme(r.secteur) || { k: 'autre', t: 'Autres activités' }; (G[th.k] ||= { th, rows: [] }).rows.push(r); }
+  const L = Object.values(G).map((g) => { const e = agg(g.rows.filter((r) => r.statut === 'ESS')); const p = agg(g.rows.filter((r) => r.statut === 'Privé hors ESS')); const u = agg(g.rows.filter((r) => r.statut === 'Public'));
+    const base = hasPub ? e.eff + p.eff + u.eff : e.eff + p.eff; const secs = [...new Set(g.rows.filter((r) => r.statut === 'ESS').map((r) => r.secteur))];
+    return { th: g.th, e, base, part: pct(e.eff, base), secret: isSecret(e), secs }; }).filter((x) => x.e.eff > 0 || x.secret).sort((a, b) => b.e.eff - a.e.eff);
+  const lab = hasPub ? 'de l’emploi salarié du secteur' : 'de l’emploi salarié privé du secteur';
+  docs.push(B.h2('Ce que l’ESS apporte à la société : les grands domaines d’activité'));
+  const best = L.filter((x) => !x.secret && x.part != null).sort((a, b) => b.part - a.part)[0];
+  docs.push(B.p(`L’ESS est présente dans tous les grands domaines d’activité${best ? ` ; son poids est le plus élevé dans « ${best.secs.join(', ')} » (${fPct(best.part)} ${lab})` : ''}. Ces chiffres d’emploi salarié ne mesurent ni le bénévolat ni l’utilité sociale : ils montrent où l’ESS est un acteur économique de premier plan.`));
+  docs.push(B.table('Tableau — L’ESS par grand domaine d’activité', ['Domaine', 'Secteurs FLORES', 'Salariés ESS', 'Établissements ESS', `Poids de l’ESS (${hasPub ? 'emploi total' : 'emploi privé'})`], L.map((x) => [x.th.t, x.secs.join(', '), x.secret ? 's' : fInt(x.e.eff), x.secret ? 's' : fInt(x.e.etab), x.secret ? 's' : fPct(x.part)]), null, `Source : ${srcName()}, ${t}. Rattachement des secteurs aux domaines : indicatif (FLORES ne publie que des secteurs agrégés).`));
+  for (const x of L.filter((y) => !y.secret && y.th.enjeu).slice(0, 6)) {
+    docs.push(B.h3(x.th.t)); docs.push(B.p(`${x.th.enjeu} Dans les données : ${fInt(x.e.eff)} salariés dans ${fInt(x.e.etab)} établissements employeurs, soit ${fPct(x.part)} ${lab} (${x.secs.join(', ')}).`));
+  }
+  docs.push(B.box('À compléter par le CRESS', 'Pour chaque domaine, ajouter une initiative locale nommée et sourcée, ainsi que les chiffres de contexte (besoins, politiques publiques) issus d’autres sources citées. Ils ne figurent pas dans FLORES.'));
+  return docs;
+}
+/** Disponibilité des sources pour chaque production. */
+function refDispo() {
+  const flo = state.rows && state.rows.length > 0 && state.timeType !== 'trimestre'; const urs = !!state.urs; const d = (n) => state.tables.some((x) => n.every((k) => x.dims.includes(k)));
+  return { flores: flo ? `oui, millésimes ${state.times.join(', ')}` : 'non chargé', urssaf: urs ? 'oui' : 'non chargé', taille_x_statut: d(['taille', 'statut']), sexe_csp_statut: d(['sexe', 'csp', 'statut']), departements_x_statut: d(['geo2', 'statut']), epci: d(['geo3']) };
+}
+IA_TOOLS.push({ name: 'referentiel_productions', description: 'Grammaire des productions de référence du réseau (note de conjoncture ESS France/IDF, panorama FLORES IDF/Occitanie, panorama thématique ESS France, diagnostic territorial de Royan) : structure type, ordre des sections, règles d’écriture, source de données et outil à utiliser, plus la disponibilité réelle des données chargées. À appeler avant de rédiger ou de générer un panorama, une note de conjoncture ou un diagnostic.',
+  schema: { type: 'object', properties: { production: { type: 'string', enum: ['note_conjoncture', 'panorama_flores', 'panorama_thematique', 'diagnostic_territorial', 'toutes'] } } },
+  run: (a) => { const k = a && a.production && a.production !== 'toutes' ? [a.production] : Object.keys(REF_PROD); return JSON.stringify({ disponibilite: refDispo(), productions: Object.fromEntries(k.map((x) => [x, REF_PROD[x]])) }, null, 1); } });
+Object.assign(window.ESS, { REF_PROD, REF_THEMES, buildThematique, refDispo });
 
 /* ======================================================================
    Dossier partagé (SharePoint / OneDrive / Drive synchronisé sur l'ordinateur).
