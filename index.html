@@ -22696,7 +22696,7 @@ function cles(rows) {
   return { ess, priv, pub, poidsTot: pct(ess.eff, ess.eff + priv.eff + pub.eff), poidsPriv: pct(ess.eff, ess.eff + priv.eff), poidsEtabPriv: pct(ess.etab, ess.etab + priv.etab), hasPub: pub.n > 0 };
 }
 const dimVal = (r, d) => (d === 'famille' ? (r.famille || r.statut) : d === 'temps' ? r.t : r[d] ?? '');
-const DIM_LABELS = () => ({ famille: 'Famille', secteur: 'Secteur d’activité', geo1: GEO_LABEL().geo1, geo2: GEO_LABEL().geo2, geo3: GEO_LABEL().geo3, statut: 'Statut', temps: 'Période', ...EX_LAB, taille: 'Taille d’établissement' });
+const DIM_LABELS = () => new Proxy({ famille: 'Famille', secteur: 'Secteur d’activité', geo1: GEO_LABEL().geo1, geo2: GEO_LABEL().geo2, geo3: GEO_LABEL().geo3, statut: 'Statut', temps: 'Période', ...EX_LAB, taille: 'Taille d’établissement' }, { get: (o, k) => (k in o ? o[k] : typeof k === 'string' ? ({ sexe: 'Sexe', csp: 'Catégorie socio-professionnelle', typemp: 'Type d’emploi', nj_coop: 'Forme coopérative', nj_mut: 'Type de mutuelle' }[k] || String(k).charAt(0).toUpperCase() + String(k).slice(1)) : undefined) });
 function dimsAvailable() {
   const d = ['famille', 'secteur']; if (state.map.geo1) d.push('geo1'); if (state.map.geo2) d.push('geo2'); if (state.map.geo3) d.push('geo3');
   if (!state.aggregated || state.map.taille) d.push('taille'); d.push('statut'); if (state.times.length > 1) d.push('temps');
