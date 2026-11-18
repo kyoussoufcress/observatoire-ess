@@ -282,9 +282,51 @@ header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media
 .cj-sb{color:#fff;padding:8px 10px;border-radius:1px;display:flex;flex-direction:column;justify-content:center;gap:6px}.cj-sb h5{margin:0;font:400 14px var(--font-title)}.cj-sl{display:flex;gap:8px;align-items:center;font-size:10px;line-height:1.25}.cj-sl b{font:700 18px var(--font-title);margin-right:3px}.cj-ns{font-size:9.5px;margin:0;opacity:.9}
 .cj-bt{border-top:1px solid #3c3c3b;padding-top:6px}.cj-bt h4{margin:0 0 2px;font:700 12px var(--font-title)}.cj-minis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;align-items:end}.cj-mini b{font-size:11px;font-weight:600}.cj-lg{display:flex;flex-direction:column;gap:3px;font-size:9px;grid-column:4;grid-row:1;align-self:start}.cj-lg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
 @media print{.cj-page{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+/* ===== Vague 1 de l'audit : accessibilité, impression, mobile ===== */
+.skip{position:absolute;left:-9999px;top:8px;z-index:200;background:#243570;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none}
+.skip:focus{left:8px}
+main:focus{outline:none}
+:focus-visible{outline:3px solid #4397d1;outline-offset:2px}
+.quick{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 12px}
+.quick-t{font-weight:700;color:#243570;margin-right:4px;width:100%}
+.chip{border:1px solid #4397d1;background:#fff;color:#1070b0;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px;cursor:pointer;min-height:40px}
+.chip:hover,.chip:focus-visible{background:#eaf3fa}
+.tw{max-width:100%;overflow-x:auto}
+section.view table.t{max-width:100%}
+#v-aide .t{display:block;max-width:100%;overflow-x:auto}
+nav.side button[aria-current="page"]{font-weight:700}
+@media (max-width:760px){
+  header.top{flex-wrap:wrap;gap:8px}
+  header.top .tagline,header.top #hdrSub{display:none}
+  header.top .logo-pair{max-width:60%}
+  header.top h1{font-size:16px;flex:1 1 100%}
+  .doc,.fiche-page,.cj-page{max-width:100%}
+  button,select,input[type=text],input[type=number]{min-height:44px}
+  section.view img,section.view svg,section.view canvas{max-width:100%;height:auto}
+  .doc table,.fiche-page table{display:block;overflow-x:auto}
+}
+@media print{
+  header.top,nav.side,.noprint,.skip,.quick{display:none!important}
+  .layout{display:block}main{padding:0}
+  section.view.active{display:block!important}
+  section.view.active .card{box-shadow:none;break-inside:avoid}
+  body{background:#fff}
+  main::after{content:"Observatoire régional de l’ESS · CRESS Mayotte · imprimé le " attr(data-date);display:block;margin-top:12px;font-size:10px;color:#3c3c3b}
+}
+
+.src,#tbSrc,#exSrc,#cmpSrc{color:#5f5f5e}
+details>summary{min-height:28px;padding:4px 0}
+.grid>*,.card{min-width:0}
+@media (max-width:760px){
+  .grid.g2,.grid.g3,.grid.g4{grid-template-columns:1fr!important}
+  section.view table.t,section.view .cj-page table,section.view .doc table{display:block;max-width:100%;overflow-x:auto}
+  .card{max-width:100%;overflow-x:auto}
+}
 </style>
 </head>
 <body>
+<a class="skip" href="#main">Aller au contenu</a>
 <div class="layout">
 <nav class="side" id="nav">
   <div class="brand"><div class="brand-logo"><img data-brand="cressW" alt="CRESS Mayotte — chambre régionale de l’économie sociale et solidaire"></div></div>
@@ -313,22 +355,22 @@ header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media
   <button data-v="partager" class="x-expert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg><span>Partager & Power BI</span></button>
   <button data-v="parametres" class="x-expert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Paramètres</span></button>
   <button data-v="aide" class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14"/><circle cx="12" cy="17.5" r=".6"/></svg><span>Aide & méthode</span></button>
-  <div class="nav-foot" id="navFoot"><strong>Édition expert</strong><br>Accès complet aux données et à l’IA.</div>
+  <div class="nav-foot" id="navFoot"><strong>Profil expert</strong><br>Accès complet aux données et à l’IA. Les calculs se font sur votre poste ; l’IA ne contacte internet que lorsque vous l’interrogez.</div>
 </nav>
 <div class="content">
 <header class="top">
   <button class="b menu-btn" id="menuBtn" aria-label="Menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
   <div>
     <h1 id="hdrTitle">Observatoire de l’ESS</h1>
-    <div class="sub" id="hdrSub">Calculs réalisés sur ce poste · l’Expert IA se connecte à internet uniquement lorsque vous l’interrogez</div>
+    <div class="sub" id="hdrSub">Les chiffres de l’économie sociale et solidaire, expliqués simplement</div>
   </div>
   <div class="spacer"></div>
   <div class="tagline">Sociale et solidaire, l’économie des Mahorais.</div>
   <div class="logo-pair" aria-label="CRESS Mayotte et marque ESS L’économie en mieux"><img data-brand="cress" alt="CRESS Mayotte"><span class="logo-sep"></span><img data-brand="ess" alt="ESS — L’économie en mieux"></div>
-  <span class="badge mode" id="hdrMode">Édition expert</span>
+  <span class="badge mode" id="hdrMode">Profil expert</span>
   <span class="badge" id="hdrData">Aucune donnée chargée</span>
 </header>
-<main>
+<main id="main" tabindex="-1">
 
 <!-- ACCUEIL -->
 <section class="view active" id="v-accueil"><div id="homeOut"></div></section>
@@ -443,6 +485,10 @@ header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media
 <section class="view" id="v-annuaire">
   <h2 class="vt">Annuaire des entreprises de l’ESS</h2>
   <p class="lead">Établissements actifs de l’ESS issus de la base Sirene (Insee), selon le périmètre statistique de l’observatoire. Choisissez un territoire, une famille ou une activité, puis exportez la liste.</p>
+  <div class="card noprint x-expert"><h3>Sirene : base complète, puis extraction de l’ESS</h3><p class="muted" style="margin-top:0">Étape 1 : récupérer tous les établissements actifs et diffusibles des territoires (API publique « Recherche d’entreprises », sans clé ; reprise possible si vous arrêtez). Étape 2 : en extraire l’ESS selon le périmètre choisi dans les paramètres, sans nouvel appel. Mayotte prend quelques minutes ; La Réunion plus d’un quart d’heure.</p>
+    <div class="row"><label class="f" style="margin:0"><input type="checkbox" class="sirZ" value="976" checked> Mayotte</label><label class="f" style="margin:0"><input type="checkbox" class="sirZ" value="974"> La Réunion</label><label class="f" style="margin:0"><input type="checkbox" class="sirZ" value="971"> Guadeloupe</label><label class="f" style="margin:0"><input type="checkbox" class="sirZ" value="972"> Martinique</label><label class="f" style="margin:0"><input type="checkbox" class="sirZ" value="973"> Guyane</label></div>
+    <div class="row" style="margin-top:10px"><button class="b primary" id="sirGo">1. Récupérer / mettre à jour la base</button><button class="b hide" id="sirStop">Arrêter</button><button class="b primary" id="sirExtr" disabled>2. Extraire l’ESS</button><button class="b" id="sirXl">Exporter la base brute (Excel)</button><button class="b hide" id="sirPub">Publier entreprises.js dans le dossier</button></div>
+    <div id="sirMsg" aria-live="polite" style="margin-top:8px"></div><div id="sirBase" style="margin-top:8px"></div></div>
   <div class="card noprint x-expert"><h3>Charger l’annuaire</h3><p class="muted" style="margin-top:0">Fichier produit par <code>python/sirene_ess.py</code> (<code>entreprises.js</code>, ou le CSV / Excel). Pour le partager, déposez <code>entreprises.js</code> dans le dossier de la page de consultation.</p>
     <div class="row"><button class="b primary" id="anLoadBtn">Choisir le fichier…</button><input type="file" id="anFile" accept=".js,.json,.csv,.xlsx" class="hide"><span id="anLoadMsg"></span></div></div>
   <div id="anBody"></div>
@@ -527,7 +573,7 @@ header.top h1{white-space:nowrap}header.top>div:first-of-type{min-width:0}@media
 <!-- 4. PUBLICATIONS -->
 <section class="view" id="v-publications">
   <h2 class="vt">Publications rédigées</h2>
-  <p class="lead">Deux livrables rédigés, exportables en Word et PDF : le Panorama de l’ESS (données annuelles FLORES de l’Insee) et la Note de conjoncture (séries trimestrielles Acoss-Urssaf). Le texte est rédigé à partir des chiffres : relisez et complétez avant diffusion.</p>
+  <p class="lead">Documents rédigés à partir des chiffres, exportables en Word, PDF et Excel : panoramas et portraits (données annuelles FLORES de l’Insee) et note de conjoncture (séries trimestrielles Acoss-Urssaf). Relisez et complétez avant diffusion.</p>
   <div class="card noprint">
     <div class="row" id="pubFilters"></div>
     <div class="row" style="margin-top:12px">
@@ -22084,7 +22130,7 @@ function floresConvert(cols, data, yearOv) {
       const T = par ? val(par[c]) : null; res[m] = T != null && nS ? Math.max(0, T - known) / nS : 0; unk[m] = T == null && nS > 0;
     }
     for (const r of list) {
-      const rec = { territoire: r.g, famille: r.fam, secteur: r.t ? ucfirst(r.t.toLowerCase().replace(/\s*\(.*?\)\s*$/, '')) + (/\(.*\)\s*$/.test(r.t) ? ' ' + r.t.match(/\(.*\)\s*$/)[0].trim() : '') : 'Ensemble', annee: year, etablissements: num(r.x[nk.etab]), entreprises: nk.ent ? num(r.x[nk.ent]) : '', secret_insee: 0 };
+      const rec = { territoire: r.g, famille: r.fam, secteur: r.t ? secFmt(r.t) : 'Ensemble', annee: year, etablissements: num(r.x[nk.etab]), entreprises: nk.ent ? num(r.x[nk.ent]) : '', secret_insee: 0 };
       for (const [m, c] of mes) { const v = val(r.x[c]); if (v == null) { rec.secret_insee = 1; } rec[{ postes: 'effectifs', etp: 'etp', ms: 'masse_salariale' }[m]] = v == null ? Math.round(res[m]) : v; }
       rec.__g = r.g; rec.__cls = r.fam === 'Public' || r.fam === 'Privé hors ESS' ? 'HORS' : 'ESS'; rec.__unk = unk; rec.__raw = r.x; out.push(rec);
     }
@@ -22137,7 +22183,7 @@ const epciGeo1 = (code, name) => { const gr = state.geoRef && state.geoRef.get(S
   if (/R[ée]union|CINOR|CIVIS|CASUD|CIREST|Territoire de la C[ôo]te Ouest/i.test(n)) return 'La Réunion';
   if (/Mayotte|Demb[ée]ni|Petite-Terre|Mamoudzou/i.test(n)) return 'Mayotte';
   return ''; };
-const EX_LAB = { taille: 'Taille d’établissement', csp: 'Catégorie socioprofessionnelle', sexe: 'Sexe', typemp: 'Type d’emploi' };
+const EX_LAB = { nj_mut: 'Type de mutuelle', nj_coop: 'Forme de coopérative', taille: 'Taille d’établissement', csp: 'Catégorie socioprofessionnelle', sexe: 'Sexe', typemp: 'Type d’emploi' };
 const NJ_FAM = { '01': 'Coopératives', '02': 'Mutuelles', '03': 'Associations', '04': 'Fondations' };
 const secFmt = (t) => (t ? ucfirst(t.toLowerCase().replace(/\s*\(.*?\)\s*$/, '')) + (/\(.*\)\s*$/.test(t) ? ' ' + t.match(/\(.*\)\s*$/)[0].trim() : '') : 'Ensemble');
 function inseeTable(cols, data, ctx = {}, level = 'reg') {
@@ -22286,7 +22332,7 @@ function renderTablesPanel(ign = [], refMsg = '') {
   const cb = $('cacheClear'); if (cb) cb.onclick = async () => { await cClear(); cb.textContent = 'Mémoire locale vidée'; };
 }
 // --- Cache local des fichiers déjà lus (IndexedDB) : un fichier inchangé n'est ni téléchargé ni relu -----------------
-const CACHE_VER = '18';
+const CACHE_VER = '19';
 const cdb = () => new Promise((res, rej) => { const o = indexedDB.open('ess_cache', 1); o.onupgradeneeded = () => o.result.createObjectStore('u'); o.onerror = () => rej(o.error); o.onsuccess = () => res(o.result); });
 async function cGet(k) { try { const db = await cdb(); return await new Promise((res) => { const r = db.transaction('u').objectStore('u').get(k); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }); } catch { return null; } }
 async function cPut(k, v) { try { const db = await cdb(); await new Promise((res) => { const t = db.transaction('u', 'readwrite'); t.objectStore('u').put(v, k); t.oncomplete = res; t.onerror = res; t.onabort = res; }); } catch { /* cache indisponible */ } }
@@ -22676,7 +22722,7 @@ function groupBy(rows, fn) { const m = new Map(); for (const r of rows) { const 
 function isSecret(a) {
   if (a && a.n > 0 && a.sec === a.n) return true; // case masquée à la source (INSEE)
   if (S.secret !== '1' || !a || (a.etab === 0 && a.eff === 0)) return false;
-  if (a.etab < +S.freq) return true;
+  if (a.etab > 0 && a.etab < +S.freq) return true; // tableaux sans comptage d’établissements : le secret repose sur les cases masquées par l’Insee
   if (+S.minEff > 0 && a.eff < +S.minEff) return true;
   if ((!state.aggregated || state.map.mx) && a.eff > 0 && a.max / a.eff >= +S.dom) return true;
   return false;
@@ -22685,11 +22731,11 @@ const sv = (a, v) => (isSecret(a) ? 's' : v);
 function filt(f = {}, tab = null) {
   const rows = tab ? tab.rows : state.rows; const ign = [];
   const okFam = !f.famille || !tab || tab.dims.includes('famille'); if (!okFam) ign.push('famille');
-  const okSec = !f.secteur || !tab || tab.secteurs.has(f.secteur); if (f.secteur && !okSec) ign.push('secteur');
+  const fsec = f.secteur ? secEquiv(f.secteur, secSet(tab, f.t)) : ''; const okSec = !f.secteur || !tab || !!fsec; if (f.secteur && !okSec) ign.push('secteur');
   const okGeo = !f.geoLevel || !f.geoValue || f.geoLevel === 'zone' || !tab || rows.some((r) => r[f.geoLevel]); if (!okGeo) ign.push('territoire');
   filt.ign = ign;
   return rows.filter((r) => (!f.t || !r.t || r.t === f.t) && (!okGeo || !f.geoLevel || !f.geoValue || (f.geoLevel === 'zone' ? zoneMatch(r, f.geoValue) : r[f.geoLevel] === f.geoValue))
-    && (!f.famille || !okFam || r.famille === f.famille) && (!f.secteur || !okSec || r.secteur === f.secteur));
+    && (!f.famille || !okFam || r.famille === f.famille) && (!f.secteur || !okSec || r.secteur === fsec));
 }
 function cles(rows) {
   const ess = agg(rows.filter((r) => r.statut === 'ESS')); const priv = agg(rows.filter((r) => r.statut === 'Privé hors ESS')); const pub = agg(rows.filter((r) => r.statut === 'Public'));
@@ -22800,7 +22846,7 @@ function valueLabels(unit, doc) {
     chart.getDatasetMeta(0).data.forEach((bar, i) => { const v = chart.data.datasets[0].data[i]; if (v == null) return; ctx.fillText(v.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) + unit, bar.x + 6, bar.y); });
     ctx.restore(); } };
 }
-function draw(id, cfg) { if (charts[id]) charts[id].destroy(); const c = $(id); if (!c) return; charts[id] = new Chart(c.getContext('2d'), cfg); }
+function draw(id, cfg) { if (charts[id]) charts[id].destroy(); const c = $(id); if (!c) return; charts[id] = new Chart(c.getContext('2d'), cfg); if (typeof chartA11y === 'function') chartA11y(id); }
 const whiteBg = { id: 'bg', beforeDraw(c) { const { ctx } = c; ctx.save(); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.restore(); } };
 function chartToPng(cfg, w = 900, h = 440) {
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h; cv.style.width = w + 'px'; cv.style.height = h + 'px';
@@ -22848,7 +22894,7 @@ function renderDashboard() {
   if (!state.rows.length) return;
   const f = getF('tb'); const rows = filt(f); const c = cles(rows); const prev = prevYear(f.t); const hasPrev = prev && state.times.includes(prev);
   const cp = hasPrev ? cles(filt({ ...f, t: prev })) : null;
-  const d = (a, b) => (cp ? `<div class="d ${a - b >= 0 ? 'up' : 'down'}">${a - b >= 0 ? '▲' : '▼'} ${fSgn(pct(a - b, b))} % sur un an</div>` : '');
+  const d = (a, b) => (cp && state.timeType === 'trimestre' ? `<div class="d ${a - b >= 0 ? 'up' : 'down'}">${a - b >= 0 ? '▲' : '▼'} ${fSgn(pct(a - b, b))} % sur un an</div>` : '');
   $('tbLead').textContent = `${terrName(f)} · ${f.t} · ${REF.perimetres[S.perimetre].libelle}`;
   const k = [
     [fInt(sv(c.ess, c.ess.etab)), 'établissements employeurs de l’ESS', cp ? d(c.ess.etab, cp.ess.etab) : ''],
@@ -22864,7 +22910,7 @@ function renderDashboard() {
   const geoOnly = { geoLevel: f.geoLevel, geoValue: f.geoValue };
   const serie = state.times.map((t) => { const cc = cles(filt({ ...geoOnly, t })); return [t, cc.ess.eff, cc.priv.eff]; });
   if (serie.length > 1) {
-    $('tbC2t').textContent = 'Évolution des effectifs (base 100 = ' + serie[0][0] + ')';
+    $('tbC2t').textContent = 'Évolution des effectifs (base 100 = ' + serie[0][0] + ')' + (state.timeType === 'trimestre' ? '' : ' — indicatif : millésimes FLORES non strictement comparables (Insee)');
     draw('tbC2', cfgLine(serie.map((s) => s[0]), [
       { label: 'ESS', data: serie.map((s) => (s[1] / serie[0][1]) * 100), borderColor: col.ESS, backgroundColor: col.ESS },
       { label: 'Privé hors ESS', data: serie.map((s) => (s[2] / serie[0][2]) * 100), borderColor: col['Privé hors ESS'], backgroundColor: col['Privé hors ESS'] }]));
@@ -22894,25 +22940,32 @@ const INDICS = [
   ['rem', 'Rémunération moyenne (par ETP ou par tête)'], ['fem', 'Part des femmes (%)'], ['cdi', 'Part des CDI (%)'],
 ];
 function renderExplorerFilters() {
-  const ind = INDICS.filter(([k]) => !((k === 'etp' && !state.map.etp) || ((k === 'ms' || k === 'rem') && !state.map.ms) || (k === 'fem' && !state.map.femmes) || (k === 'cdi' && !state.map.cdi)));
+  const ind = INDICS.filter(([k]) => !((k === 'etp' && !state.map.etp) || ((k === 'ms' || k === 'rem') && !state.map.ms) || (k === 'fem' && !state.map.femmes) || (k === 'cdi' && !state.map.cdi) || !exPlusOk(k)));
   const dims = [['', 'Aucune (total)'], ...dimsAvailable().map((d) => [d, DIM_LABELS()[d]])];
   const champs = [['ESS', 'ESS'], ['Privé hors ESS', 'Privé hors ESS'], ['Public', 'Public'], ['', 'Tous statuts']];
   const fams = [['', 'Toutes'], ...famsPresent().map((x) => [x, x])];
-  const secs = [['', 'Tous'], ...[...new Set(state.rows.map((r) => r.secteur))].sort().map((x) => [x, x])];
-  $('exFilters').innerHTML = selectHTML('exInd', 'Indicateur', ind, 'eff') + selectHTML('exDim', 'Ventilé par', dims, 'secteur') + selectHTML('exChamp', 'Champ', champs, 'ESS')
+  const secs = [['', 'Tous'], ...secOptions(lastT(), '').map((x) => [x, x])];
+  $('exFilters').innerHTML = selectHTML('exInd', 'Indicateur', ind, 'eff') + selectHTML('exDim', 'Détailler par', dims, 'secteur') + selectHTML('exDim2', 'Puis croiser avec', [['', 'Aucun croisement'], ...dims.filter((x) => x[0])], '') + selectHTML('exChamp', 'Qui est compté', champs, 'ESS')
     + selectHTML('exT', 'Période', state.times.slice().reverse(), lastT()) + selectHTML('exGeoLevel', 'Territoire', geoLevelOptions(), '') + selectHTML('exGeoValue', 'Valeur', [], '')
     + selectHTML('exFam', 'Famille', fams, '') + selectHTML('exSec', 'Secteur', secs, '');
   bindGeo('ex');
+  const refreshSec = () => { const sel = $('exSec'); if (!sel) return; const cur = sel.value; sel.innerHTML = [['', 'Tous'], ...secOptions($('exT').value, $('exGeoLevel').value).map((x) => [x, x])].map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join(''); if ([...sel.options].some((o) => o.value === cur)) sel.value = cur; };
+  $('exT').addEventListener('change', refreshSec); $('exGeoLevel').addEventListener('change', refreshSec); refreshSec();
+  const pre = [['Combien de salariés par secteur ?', 'eff', 'secteur', 'ESS'], ['Où l’ESS pèse-t-elle le plus (par territoire) ?', 'poidsPriv', 'geo1', 'ESS'], ['Quelles familles emploient le plus ?', 'eff', 'famille', 'ESS'], ['Femmes et hommes', 'eff', 'sexe', 'ESS'], ['Quels types de postes (CSP) ?', 'eff', 'csp', 'ESS'], ['Petites ou grandes structures ?', 'eff', 'taille', 'ESS'], ['Et par département ?', 'eff', 'geo2', 'ESS'], ['Poids de l’ESS par département', 'poidsPriv', 'geo2', 'ESS']].filter(([, , d]) => dimsAvailable().includes(d));
+  let q = $('exQuick'); if (!q) { q = document.createElement('div'); q.id = 'exQuick'; q.className = 'quick'; $('exFilters').parentElement.insertBefore(q, $('exFilters')); }
+  q.innerHTML = '<div class="quick-t">Questions fréquentes</div>' + pre.map(([l], i) => `<button type="button" class="chip" data-q="${i}">${esc(l)}</button>`).join('');
+  q.querySelectorAll('[data-q]').forEach((b) => { b.onclick = () => { const [, ind0, dim0, ch0] = pre[+b.dataset.q]; for (const [id, v] of [['exInd', ind0], ['exDim', dim0], ['exChamp', ch0], ['exFam', ''], ['exSec', '']]) { const e = $(id); if (e && [...e.options].some((o) => o.value === v)) e.value = v; } try { runExplorer(); } catch (e) { err(e); } }; });
 }
 let exLast = null;
 function runExplorer() {
   const ind = $('exInd').value; const dim = $('exDim').value; const champ = $('exChamp').value;
   const f = { ...getF('ex'), famille: $('exFam').value, secteur: $('exSec').value };
-  const tab = srcFor([dim, f.geoLevel], { needAll: champ !== 'ESS' || ['poids', 'poidsPriv'].includes(ind), t: f.t });
+  const dim2 = $('exDim2') ? $('exDim2').value : ''; if (dim && dim2 && dim2 !== dim && runCross(ind, dim, dim2, champ, f)) return;
+  const tab = srcFor([dim, f.geoLevel, ind === 'femSexe' ? 'sexe' : ''], { needAll: champ !== 'ESS' || ['poids', 'poidsPriv', 'ecart', 'spec', 'remEcart'].includes(ind), t: f.t });
   if (!tab && [dim, f.geoLevel].some((d) => d && !baseHas(d))) { $('exSentence').textContent = 'Aucun tableau chargé ne permet cette ventilation pour ce champ ou cet indicateur (le poids de l’ESS demande un tableau qui contient aussi le privé hors ESS et le public).'; $('exTable').innerHTML = ''; return; }
-  if (tab && tab.autTotal && ind === 'poidsPriv') { $('exSentence').textContent = 'Ce tableau distingue seulement l’ESS et le « hors ESS » (privé et public confondus) : le poids de l’ESS dans l’emploi privé n’est pas calculable. Choisissez « Poids de l’ESS dans l’emploi ».'; $('exTable').innerHTML = ''; return; }
+  if (tab && tab.autTotal && ['poidsPriv', 'ecart', 'spec'].includes(ind)) { $('exSentence').textContent = 'Ce tableau distingue seulement l’ESS et le « hors ESS » (privé et public confondus) : le poids de l’ESS dans l’emploi privé n’est pas calculable. Choisissez « Poids de l’ESS dans l’emploi ».'; $('exTable').innerHTML = ''; return; }
   const all = filt(dim === 'temps' ? { ...f, t: '' } : f, tab); const ignF = filt.ign.slice(); const pick = (rr) => (champ ? rr.filter((r) => r.statut === champ) : rr);
-  const sel = pick(all); const champLbl = champ === 'ESS' ? 'l’ESS' : champ === 'Privé hors ESS' ? 'le privé hors ESS' : champ === 'Public' ? 'le secteur public' : 'l’ensemble des employeurs';
+  const sel = pick(all); if (!sel.length) { $('exSentence').textContent = `Aucune donnée pour cette combinaison en ${f.t} : aucun tableau chargé ne la contient pour cette année (voir la page Données).`; $('exTable').innerHTML = ''; return; } const champLbl = champ === 'ESS' ? 'l’ESS' : champ === 'Privé hors ESS' ? 'le privé hors ESS' : champ === 'Public' ? 'le secteur public' : 'l’ensemble des employeurs';
   const filtres = [f.famille && `famille : ${f.famille}`, f.secteur && `secteur : ${f.secteur}`].filter(Boolean).join(', ');
   const scope = `${terrName(f)}${filtres ? ' (' + filtres + ')' : ''}`;
   const prev = prevYear(f.t); const hasPrev = prev && state.times.includes(prev);
@@ -22920,30 +22973,37 @@ function runExplorer() {
   const selPrev = hasPrev ? pick(filt({ ...f, t: prev }, tab)) : [];
   const keyFn = dim ? (r) => dimVal(r, dim) : () => 'Total';
   const g = groupBy(sel, keyFn); const gAll = groupBy(all, keyFn); const gPriv = groupBy(all.filter((r) => r.statut !== 'Public'), keyFn); const gPrev = groupBy(selPrev, keyFn);
-  const tot = agg(sel); const totAll = agg(all);
+  const tot = agg(sel); const totAll = agg(all); const refPoidsX = pct(agg(all.filter((r) => r.statut === 'ESS')).eff, agg(all.filter((r) => r.statut !== 'Public')).eff);
+  const femG = ind === 'femSexe' ? groupBy(sel.filter((r) => /femme/i.test(r.sexe || '')), keyFn) : null; const homG = ind === 'femSexe' ? groupBy(sel.filter((r) => /homme/i.test(r.sexe || '')), keyFn) : null;
+  const remE = (k) => { const e = agg(all.filter((r) => r.statut === 'ESS' && keyFn(r) === k)); const p = agg(all.filter((r) => r.statut === 'Privé hors ESS' && keyFn(r) === k)); const a = remMoy(e), b = remMoy(p); return a && b ? pct(a - b, b) : null; };
   let keys = [...g.keys()];
   const value = (k, a) => {
     const base = dim === 'famille' ? totAll : gAll.get(k);
     switch (ind) {
       case 'eff': return a.eff; case 'etab': return a.etab; case 'etp': return a.etp; case 'ms': return a.ms;
       case 'poids': return pct(a.eff, base?.eff); case 'poidsPriv': return pct(a.eff, (dim === 'famille' ? agg(all.filter((r) => r.statut !== 'Public')) : gPriv.get(k))?.eff);
+      case 'taillemoy': return a.etab > 0 ? a.eff / a.etab : null;
+      case 'ecart': { const p = pct(a.eff, (dim === 'famille' ? agg(all.filter((r) => r.statut !== 'Public')) : gPriv.get(k))?.eff); return p == null || refPoidsX == null ? null : p - refPoidsX; }
+      case 'spec': { const p = pct(a.eff, (dim === 'famille' ? agg(all.filter((r) => r.statut !== 'Public')) : gPriv.get(k))?.eff); return p == null || !refPoidsX ? null : (p / refPoidsX) * 100; }
+      case 'remEcart': return remE(k);
+      case 'femSexe': { const w = femG.get(k)?.eff || 0, m = homG.get(k)?.eff || 0; return w + m > 0 ? (w / (w + m)) * 100 : null; }
       case 'part': return pct(a.eff, tot.eff); case 'rem': return remMoy(a);
       case 'fem': return pct(a.fem, a.eff); case 'cdi': return pct(a.cdi, a.eff);
       case 'evol': { const p = gPrev.get(k); return p ? pct(a.eff - p.eff, p.eff) : null; }
     }
   };
-  const fmt = { eff: fInt, etab: fInt, etp: fInt, ms: fEur, poids: fPct, poidsPriv: fPct, part: fPct, rem: fEur, fem: fPct, cdi: fPct, evol: (x) => (x === 's' ? 's' : fSgn(x) + NB + '%') }[ind];
+  const fmt = { eff: fInt, etab: fInt, etp: fInt, ms: fEur, poids: fPct, poidsPriv: fPct, part: fPct, rem: fEur, fem: fPct, cdi: fPct, taillemoy: (x) => (x == null ? '—' : new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(x)), ecart: (x) => (x == null ? '—' : fSgn(x) + NB + 'pt'), spec: (x) => (x == null ? '—' : String(Math.round(x))), remEcart: (x) => (x == null ? '—' : fSgn(x) + NB + '%'), femSexe: fPct, evol: (x) => (x === 's' ? 's' : fSgn(x) + NB + '%') }[ind];
   const lines = keys.map((k) => { const a = g.get(k); const p = gPrev.get(k); const sec = isSecret(a) || (ind === 'evol' && isSecret(p)); return { k, a, p, sec, v: value(k, a) }; });
   if (dim && !['famille', 'taille', 'temps', 'statut'].includes(dim)) lines.sort((x, y) => (y.v ?? -1e18) - (x.v ?? -1e18)); else orderKeys(dim, keys);
   if (['famille', 'taille', 'temps', 'statut'].includes(dim)) { const o = orderKeys(dim, lines.map((l) => l.k)); lines.sort((a, b) => o.indexOf(a.k) - o.indexOf(b.k)); }
   const indLbl = INDICS.find((i) => i[0] === ind)[1];
   const head = [dim ? DIM_LABELS()[dim] : '', 'Établissements', 'Effectifs'];
   const showV = !['eff', 'etab'].includes(ind); if (showV) head.push(indLbl); if (ind === 'evol') head.push('Solde (emplois)');
-  const body = lines.map((l) => { const r = [l.k, fInt(sv(l.a, l.a.etab)), fInt(sv(l.a, l.a.eff))]; if (showV) r.push(l.sec ? 's' : fmt(l.v)); if (ind === 'evol') r.push(l.sec || !l.p ? 's' : fSgnInt(l.a.eff - l.p.eff)); return r; });
+  const nd = (a) => (a.etab === 0 && a.eff > 0 ? '—' : fInt(sv(a, a.etab))); const body = lines.map((l) => { const r = [l.k, nd(l.a), fInt(sv(l.a, l.a.eff))]; if (showV) r.push(l.sec ? 's' : fmt(l.v)); if (ind === 'evol') r.push(l.sec || !l.p ? 's' : fSgnInt(l.a.eff - l.p.eff)); return r; });
   let totRow = null;
-  if (dim) { const tp = agg(selPrev); const tv = { eff: tot.eff, etab: tot.etab, etp: tot.etp, ms: tot.ms, poids: pct(tot.eff, totAll.eff), poidsPriv: pct(tot.eff, agg(all.filter((r) => r.statut !== 'Public')).eff), part: 100, rem: tot.etp ? tot.ms / tot.etp : tot.eff ? tot.ms / tot.eff : null, fem: pct(tot.fem, tot.eff), cdi: pct(tot.cdi, tot.eff), evol: hasPrev ? pct(tot.eff - tp.eff, tp.eff) : null }[ind];
-    totRow = ['Ensemble', fInt(tot.etab), fInt(tot.eff)]; if (showV) totRow.push(fmt(tv)); if (ind === 'evol') totRow.push(fSgnInt(tot.eff - tp.eff)); }
-  $('exTable').innerHTML = htmlTable(head, body, totRow); $('exSrc').textContent = sourceLine(f.t);
+  if (dim) { const tp = agg(selPrev); const tv = { eff: tot.eff, etab: tot.etab, etp: tot.etp, ms: tot.ms, poids: pct(tot.eff, totAll.eff), poidsPriv: pct(tot.eff, agg(all.filter((r) => r.statut !== 'Public')).eff), part: 100, rem: tot.etp ? tot.ms / tot.etp : tot.eff ? tot.ms / tot.eff : null, fem: pct(tot.fem, tot.eff), cdi: pct(tot.cdi, tot.eff), taillemoy: tot.etab > 0 ? tot.eff / tot.etab : null, ecart: 0, spec: 100, remEcart: (() => { const x = remMoy(agg(all.filter((r) => r.statut === 'ESS'))), y = remMoy(agg(all.filter((r) => r.statut === 'Privé hors ESS'))); return x && y ? pct(x - y, y) : null; })(), femSexe: femG ? (() => { const w = agg(sel.filter((r) => /femme/i.test(r.sexe || ''))).eff, m = agg(sel.filter((r) => /homme/i.test(r.sexe || ''))).eff; return w + m ? (w / (w + m)) * 100 : null; })() : null, evol: hasPrev ? pct(tot.eff - tp.eff, tp.eff) : null }[ind];
+    totRow = ['Ensemble', nd(tot), fInt(tot.eff)]; if (showV) totRow.push(fmt(tv)); if (ind === 'evol') totRow.push(fSgnInt(tot.eff - tp.eff)); }
+  $('exTable').innerHTML = htmlTable(head, body, totRow); $('exSrc').textContent = sourceLine(f.t) + (lines.some((l) => l.a.etab === 0 && l.a.eff > 0) ? ' — : nombre d’établissements non fourni par ce tableau.' : '') + (ind === 'evol' ? ' Variation entre deux millésimes FLORES : comparabilité non garantie (Insee) ; pour suivre l’emploi, voir la conjoncture Acoss-Urssaf.' : '');
   // Phrase de réponse
   const ok = lines.filter((l) => !l.sec && l.v != null && isFinite(l.v));
   let s;
@@ -22967,10 +23027,10 @@ function runExplorer() {
       s = `Entre ${prev} et ${f.t}, les effectifs de ${champLbl} (${scope}) ${verbe(pct(tot.eff - agg(selPrev).eff, agg(selPrev).eff), true)}.`;
       if (up.length) s += ` Les plus fortes progressions concernent : ${up.slice(0, 3).map(lab).join(', ')}.`;
       if (dn.length) s += ` Les reculs les plus marqués : ${dn.slice(0, 3).map(lab).join(', ')}.`;
-    } else if (['poids', 'poidsPriv', 'fem', 'cdi', 'rem'].includes(ind)) {
-      const NOMS = { poids: ['le poids de l’ESS dans l’emploi', 'm'], poidsPriv: ['le poids de l’ESS dans l’emploi privé', 'm'], fem: ['la part des femmes', 'f'], cdi: ['la part des CDI', 'f'], rem: ['la rémunération moyenne', 'f'] };
+    } else if (['poids', 'poidsPriv', 'fem', 'cdi', 'rem', 'taillemoy', 'ecart', 'spec', 'remEcart', 'femSexe'].includes(ind)) {
+      const NOMS = { poids: ['le poids de l’ESS dans l’emploi', 'm'], poidsPriv: ['le poids de l’ESS dans l’emploi privé', 'm'], fem: ['la part des femmes', 'f'], cdi: ['la part des CDI', 'f'], rem: ['la rémunération moyenne', 'f'], taillemoy: ['la taille moyenne des établissements', 'f'], ecart: ['l’écart à la moyenne de l’ESS', 'm'], spec: ['la spécificité de l’ESS (100 = moyenne)', 'f'], remEcart: ['l’écart de rémunération ESS / privé hors ESS', 'm'], femSexe: ['la part des femmes', 'f'] };
       const [nom, g] = NOMS[ind]; const e = g === 'f' ? 'e' : '';
-      s = `En ${f.t}, ${nom} est le plus élevé${e} pour ${lab(top[0])}${top[1] ? ', devant ' + top.slice(1).map(lab).join(' et ') : ''}, et le plus faible${e} pour ${lab(bot)}.`;
+      s = `En ${f.t}, ${nom} est le plus élevé${e} pour ${lab(top[0])}${top[1] ? ', devant ' + top.slice(1).map(lab).join(' et ') : ''}, et le plus faible pour ${lab(bot)}.`;
     } else {
       const sh = (x) => fPct(pct(x.a.eff, tot.eff));
       s = `En ${f.t}, ${ind === 'etab' ? 'les établissements' : 'les salariés'} de ${champLbl} (${scope}) se concentrent d’abord dans : ${top.map((x) => `${x.k} (${fmt(x.v)}${ind === 'eff' ? ', ' + sh(x) : ''})`).join(', ')}.`;
@@ -22982,7 +23042,7 @@ function runExplorer() {
   const chartable = ok.filter((l) => l.k !== 'Non renseigné');
   const col = FAM_COLORS();
   if (dim === 'temps') draw('exChart', cfgLine(chartable.map((l) => l.k), [{ label: indLbl, data: chartable.map((l) => +(+l.v).toFixed(2)), borderColor: col.ESS, backgroundColor: col.ESS }]));
-  else draw('exChart', cfgBarH(chartable.map((l) => l.k), chartable.map((l) => +(+l.v).toFixed(1)), { colors: dim === 'famille' || dim === 'statut' ? chartable.map((l) => col[l.k] || col.ESS) : undefined, unit: ['poids', 'poidsPriv', 'part', 'fem', 'cdi', 'evol'].includes(ind) ? ' %' : '' }));
+  else draw('exChart', cfgBarH(chartable.map((l) => l.k), chartable.map((l) => +(+l.v).toFixed(1)), { colors: dim === 'famille' || dim === 'statut' ? chartable.map((l) => col[l.k] || col.ESS) : undefined, unit: ['poids', 'poidsPriv', 'part', 'fem', 'cdi', 'evol', 'remEcart', 'femSexe'].includes(ind) ? ' %' : ind === 'ecart' ? ' pt' : '' }));
   exLast = { s, head, body, totRow, f, scope, indLbl, dim, ind, chart: charts.exChart ? charts.exChart.config : null, chartable, fmt };
 }
 function exportExplorer() {
@@ -23412,6 +23472,7 @@ function showView(v) {
   document.querySelectorAll('nav.side button').forEach((b) => b.classList.toggle('active', b.dataset.v === vOrig));
   document.querySelectorAll('section.view').forEach((s) => s.classList.toggle('active', s.id === 'v-' + v));
   if (v === 'tableau' && state.rows.length) setTimeout(renderDashboard, 0);
+  if (v === 'explorer' && state.rows.length && !exLast) setTimeout(() => { try { runExplorer(); } catch (e) { /* aperçu par défaut */ } }, 0);
   if (v === 'methodes' && window.ESS.renderMethodes) window.ESS.renderMethodes();
   if (v === 'fiches' && window.ESS.renderFiches) window.ESS.renderFiches();
   if (v === 'publications') renderPubFilters();
@@ -23419,6 +23480,7 @@ function showView(v) {
   if (v === 'biblio' && window.ESS.renderBiblio) { window.ESS.renderBiblio(); window.ESS.renderIndic(); }
   if (!['donnees', 'parametres', 'aide', 'accueil', 'expert', 'contexte', 'annuaire', 'methodes', 'biblio', 'fiches', 'conjoncture'].includes(v) && !(v === 'publications' && state.urs) && !state.rows.length) { const sec = $('v-' + v); if (!sec.querySelector('.nodata')) sec.insertAdjacentHTML('afterbegin', '<div class="msg warn nodata">Chargez d’abord un fichier dans l’onglet « Données ».</div>'); }
   else document.querySelectorAll('.nodata').forEach((n) => n.remove());
+  if (typeof routePush === 'function') routePush(vOrig);
 }
 function init() {
   document.querySelectorAll('img[data-brand]').forEach((i) => { i.src = BRAND[i.dataset.brand]; }); const fv = document.getElementById('favicon'); if (fv) fv.href = BRAND.fav;
@@ -24241,6 +24303,7 @@ function iaSystemPrompt() {
 
 PÉRIMÈTRE ACTUEL DU PROJET
 Les données de référence sont FLORES ; les séries de conjoncture (Urssaf) s’ajoutent dès qu’elles sont chargées. Sans précision de territoire, l’échelon par défaut est l’Outre-mer (agrégat des DROM). Pour toute question de conjoncture (emplois, solde net, glissement annuel, salaire moyen par tête, par famille, secteur, région, département, Outre-mer) : appeler conjoncture_urssaf, jamais calculer_evolution sur FLORES. Les calculs d’évolution (taux d’accroissement, coefficient multiplicateur, TCAM, glissement annuel ou trimestriel, comparaison ESS / privé hors ESS) se font avec calculer_evolution, à toute échelle géographique, uniquement sur les séries Urssaf de la note de conjoncture, jamais sur FLORES. Ne propose pas la liste des entreprises (Sirene) ni d’autre source non chargée, sauf si la personne le demande. Les publications du réseau (Panorama, etc.) peuvent mentionner ces sources : elles servent d’inspiration pour la structure, le vocabulaire et le choix des indicateurs, pas de promesse de données disponibles.
+Tu es aussi un expert en statistiques de l’emploi, en méthodes d’analyse économique, en économie et droit de l’ESS, en politiques publiques, en plaidoyer et en communication : avant d’interpréter un écart, de comparer deux sources, de citer une politique publique ou un montant, de rédiger un argumentaire ou de répondre sur Mayotte, appelle base_expertise ; revérifie par recherche web tout élément daté ; distingue toujours fait, interprétation et position d’acteur ; cette expertise doit se voir dans la qualité de ton raisonnement (choix de la bonne méthode, mise en garde pertinente, lecture économique et politique juste, message adapté au public), pas dans des citations : ne cite une source que si l’utilisateur la demande ou si un chiffre l’exige, et ne récite jamais la base d’expertise.
 Avant de rédiger un panorama, une note de conjoncture, un panorama thématique ou un diagnostic territorial, appelle referentiel_productions : il donne la structure, les règles et la source de données des productions de référence (ESS France, CRESS Île-de-France et Occitanie, diagnostic de Royan) et la disponibilité réelle des données chargées ; suis cette grammaire, signale ce que les données ne permettent pas et ne comble jamais un manque par un chiffre inventé. Avant de concevoir ou de générer un livrable, appelle modeles_livrables et consulter_publications pour t’inspirer de l’ensemble des documents du dossier des livrables, pas d’un seul : le Panorama n’est qu’un exemple parmi d’autres formats.
 
 SOURCES ET LIMITES (à appliquer dans toute réponse)
@@ -24797,18 +24860,19 @@ function renderHome0() {
   }
   const t = lastT(); const c = cles(filt({ t })); const prev = prevYear(t); const cp = prev && state.times.includes(prev) ? cles(filt({ t: prev })) : null;
   const ev = cp ? pct(c.ess.eff - cp.ess.eff, cp.ess.eff) : null;
-  const hk = [[fInt(c.ess.etab), 'établissements employeurs de l’ESS'], [fInt(c.ess.eff), 'salariés de l’ESS'], [fPct(c.poidsPriv), 'de l’emploi salarié privé'], ...(ev != null ? [[`${ev >= 0 ? '▲' : '▼'} ${fSgn(ev)} %`, `évolution de l’emploi ESS depuis ${prev}`]] : [])];
+  const hk = [[fInt(c.ess.etab), 'établissements employeurs de l’ESS'], [fInt(c.ess.eff), 'salariés de l’ESS'], [fPct(c.poidsPriv), 'de l’emploi salarié privé'], ...(c.hasPub ? [[fPct(c.poidsTot), 'de l’emploi salarié total']] : [])];
   const terrs = state.map.geo1 ? geoValues('geo1').filter((k) => k && k !== 'Non renseigné') : [];
   const ts = compatTimes(t);
   const cards = terrs.map((k) => {
     const ck = cles(filt({ t, geoLevel: 'geo1', geoValue: k })); const ckp = cp ? cles(filt({ t: prev, geoLevel: 'geo1', geoValue: k })) : null; const e = ckp ? pct(ck.ess.eff - ckp.ess.eff, ckp.ess.eff) : null; const sec = isSecret(ck.ess);
     const serie = ts.map((x) => cles(filt({ t: x, geoLevel: 'geo1', geoValue: k })).ess.eff);
-    return `<button class="terr" data-terr="${esc(k)}"><div class="n">${esc(k)}${e != null && !sec ? `<span class="badge ${e >= 0 ? 'ok' : ''}" style="${e < 0 ? 'background:var(--danger-bg);color:var(--danger);border-color:transparent' : ''}">${e >= 0 ? '▲' : '▼'} ${fSgn(e)} %</span>` : ''}</div>
-      <div class="v">${sec ? lab('s') : fInt(ck.ess.eff)}</div><div class="m">salariés ESS · ${sec ? '' : fPct(ck.poidsPriv) + ' de l’emploi privé'}</div>${sec ? '' : sparkline(serie)}</button>`;
+    return `<button class="terr" data-terr="${esc(k)}"><div class="n">${esc(k)}</div>
+      <div class="v">${sec ? lab('s') : fInt(ck.ess.eff)}</div><div class="m">salariés ESS · ${sec ? '' : fPct(ck.poidsPriv) + ' de l’emploi privé'}</div></button>`;
   }).join('');
   out.innerHTML = `<div class="hero"><div class="eyebrow">${CONSULT ? 'Édition consultation' : 'Tableau de bord de l’observatoire'} · ${esc(t)}</div><h2>${esc(titre)}</h2>
     <p>${CONSULT && CONSULT.message ? esc(CONSULT.message) + ' · ' : ''}Source : ${esc(srcName())} ${esc(t)} — ${esc(REF.perimetres[S.perimetre].libelle)}.${CONSULT ? ` Données arrêtées le ${esc(CONSULT.cree_le)}.` : ''}</p>
     <div class="hero-kpis">${hk.map(([v, l]) => `<div class="hk"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('')}</div></div>
+    ${home30(t, c, cp, terrs)}
     ${terrs.length ? `<div class="section-title"><h3>Les territoires</h3><span class="muted" style="font-size:13px">Cliquez sur un territoire pour ouvrir son portrait</span></div><div class="terr-grid" style="margin-bottom:24px">${cards}</div>` : ''}
     <div class="section-title"><h3>Que souhaitez-vous faire ?</h3></div>
     <div class="tiles">${tile('tableau', 'grid', 'Voir les chiffres clés', 'Familles, secteurs, territoires, évolution')}${tile('explorer', 'search', 'Trouver un chiffre', 'Composer une question et obtenir la réponse rédigée')}
@@ -24955,9 +25019,68 @@ function initAnnuaire() {
   if ($('csPublish')) $('csPublish').onclick = () => { try { buildConsultation('dossier'); } catch (e) { err(e); } };
   $('csUpdate').onclick = () => { try { buildConsultation('maj'); } catch (e) { err(e); } };
   if (window.ESS_VIEWER && !CONSULT) { document.body.classList.add('consult'); $('hdrTitle').textContent = 'Résultats introuvables'; $('homeOut').innerHTML = '<div class="hero"><h2>Fichier de résultats introuvable</h2><p>Le fichier « resultats.js » doit se trouver dans le même dossier que cette page. Demandez à l’expert de l’y déposer.</p></div>'; showView('accueil'); return; }
-  if (CONSULT) startConsultation(); else { renderHome(); showView('accueil'); }
+  if (CONSULT) startConsultation(); else { renderHome(); showView(routeFromHash() || 'accueil'); }
 })();
 Object.assign(window.ESS, { setConsult: (c) => { CONSULT = c; }, startConsultation, anLoadObj, buildConsultation, renderHome, CONSULT });
+
+/* ===== Accessibilité : noms accessibles, graphiques, page active (audit vague 1) ===== */
+function a11yPass() {
+  document.querySelectorAll('select,input:not([type=hidden]):not([type=checkbox]):not([type=radio]),textarea').forEach((e) => {
+    if (e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || (e.labels && e.labels.length)) return;
+    const wrap = e.closest('div,td,label,p'); const lab = wrap && wrap.querySelector('label, .f, strong, span.muted');
+    const txt = (lab && lab !== e ? lab.textContent : '') || e.getAttribute('title') || e.getAttribute('placeholder') || e.name || e.id || '';
+    if (txt.trim()) e.setAttribute('aria-label', txt.trim().slice(0, 80));
+  });
+  document.querySelectorAll('canvas').forEach((c) => {
+    if (c.getAttribute('role')) return; const card = c.closest('.card, figure, .doc-fig'); const h = card && card.querySelector('h3, h4, .cap, figcaption');
+    c.setAttribute('role', 'img'); c.setAttribute('aria-label', ((h && h.textContent.trim()) || 'Graphique') + ' — les valeurs figurent dans le tableau voisin ou dans l’export Excel.');
+  });
+  document.querySelectorAll('.tw, #v-aide .t').forEach((t, i) => { if (!t.hasAttribute('tabindex')) { t.setAttribute('tabindex', '0'); t.setAttribute('role', 'region'); if (!t.getAttribute('aria-label')) { const v = t.closest('section.view'); const h = t.closest('.card') && t.closest('.card').querySelector('h3'); t.setAttribute('aria-label', 'Tableau défilant : ' + ((h && h.textContent.trim()) || (v && v.id.replace('v-', '')) || '') + ' ' + (i + 1)); } } });
+  document.querySelectorAll('nav.side button').forEach((b) => { if (b.classList.contains('active')) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  document.querySelectorAll('button').forEach((b) => { if (!(b.innerText || b.getAttribute('aria-label') || b.title || '').trim()) b.setAttribute('aria-label', b.id || 'Bouton'); });
+  const m = document.querySelector('main'); if (m) m.setAttribute('data-date', new Date().toLocaleDateString('fr-FR'));
+}
+new MutationObserver(() => { clearTimeout(window.__a11yT); window.__a11yT = setTimeout(a11yPass, 150); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+a11yPass();
+
+/* ===== « L'ESS en 30 secondes » : lecture en langage courant des chiffres clés ===== */
+function home30(t, c, cp, terrs) {
+  try {
+    const rows = filt({ t }); const sec = essParDim(rows, 'secteur').lines.filter((l) => !l.sec && l.k !== 'Non renseigné' && l.part != null); const fam = essParDim(rows, 'famille').lines.filter((l) => !l.sec && l.part != null).sort((x, y) => y.a.eff - x.a.eff);
+    const P = [`En ${t}, l’économie sociale et solidaire (associations, coopératives, mutuelles et fondations) emploie ${fInt(c.ess.eff)} salariés dans ${fInt(c.ess.etab)} établissements${c.poidsPriv != null ? `, soit ${fPct(c.poidsPriv)} de l’emploi salarié privé` : ''}.`];
+    if (fam[0]) P.push(`${/^(Associations|Coopératives|Mutuelles|Fondations)$/i.test(fam[0].k) ? 'Les ' + fam[0].k.toLowerCase() + ' concentrent' : ucfirst(fam[0].k) + ' concentre'} ${fPct(fam[0].part)} des emplois de l’ESS.`);
+    if (sec[0]) P.push(`Le premier secteur d’activité est « ${sec[0].k} » (${fPct(sec[0].part)} des emplois)${sec[1] ? `, suivi de « ${sec[1].k} »` : ''}.`);
+    const mj = sec.filter((l) => l.poids != null && l.poids >= 50 && l.part >= 3 && !/non.class|divers/i.test(l.k)).sort((x, y) => y.poids - x.poids)[0]; if (mj) P.push(`Dans « ${mj.k} », l’ESS est majoritaire : elle représente ${fPct(mj.poids)} des salariés du secteur.`);
+    if (terrs && terrs.length > 2) { const L = terrs.map((k) => { const ck = cles(filt({ t, geoLevel: 'geo1', geoValue: k })); return { k, p: ck.poidsPriv, s: isSecret(ck.ess) }; }).filter((x) => !x.s && x.p != null).sort((x, y) => y.p - x.p); if (L[0]) P.push(`C’est en ${L[0].k} que l’ESS pèse le plus dans l’emploi privé (${fPct(L[0].p)}).`); }
+    return `<div class="card" style="margin-bottom:22px"><h3>L’ESS en 30 secondes</h3><p style="margin:6px 0 0;line-height:1.6">${P.map(esc).join(' ')}</p><p class="muted" style="font-size:13px;margin:8px 0 0">Emploi salarié, données annuelles de l’Insee (FLORES), photographie au 31 décembre. Le bénévolat n’est pas compté.</p></div>`;
+  } catch (e) { return ''; }
+}
+
+/* ===== Graphiques : description, lecture et tableau de données pour tous ===== */
+function chartA11y(id) {
+  try {
+    const ch = charts[id]; const cv = $(id); if (!ch || !cv) return; const d = ch.config.data; const labs = d.labels || []; const ds = (d.datasets || []).filter((x) => x.data && x.data.length);
+    if (!labs.length || !ds.length) return; const nf = (v) => (v == null || isNaN(v) ? '—' : (+v).toLocaleString('fr-FR', { maximumFractionDigits: 2 }));
+    const horiz = ch.config.options && ch.config.options.indexAxis === 'y'; const kind = ch.config.type === 'line' ? 'courbe' : 'barres';
+    const first = ds[0]; const pairs = labs.map((l, i) => [String(l), +first.data[i]]).filter((p) => isFinite(p[1]));
+    const label = `Graphique en ${kind}${ds.length > 1 ? ' (' + ds.map((x) => x.label).filter(Boolean).join(', ') + ')' : ''} : ` + pairs.slice(0, 12).map((p) => `${p[0]} ${nf(p[1])}`).join(' ; ') + (pairs.length > 12 ? ' ; …' : '');
+    cv.setAttribute('role', 'img'); cv.setAttribute('aria-label', label.slice(0, 600));
+    const host = cv.closest('.chartbox') || cv.parentElement; const after = host.nextElementSibling && host.nextElementSibling.classList && host.nextElementSibling.classList.contains('chartextra') ? host.nextElementSibling : null;
+    if (after) after.remove();
+    const ex = document.createElement('div'); ex.className = 'chartextra noprint';
+    let read = ''; if (pairs.length >= 2) { if (ch.config.type === 'line') { const a = pairs[0], z = pairs[pairs.length - 1]; read = `Lecture : de ${a[0]} à ${z[0]}, la série passe de ${nf(a[1])} à ${nf(z[1])}.`; } else { const s = pairs.slice().sort((x, y) => y[1] - x[1]); read = `Lecture : la valeur la plus élevée est « ${s[0][0]} » (${nf(s[0][1])}), la plus faible « ${s[s.length - 1][0]} » (${nf(s[s.length - 1][1])}).`; } }
+    const rows = labs.slice(0, 60).map((l, i) => `<tr><th scope="row" style="text-align:left">${esc(String(l))}</th>${ds.map((x) => `<td>${nf(x.data[i])}</td>`).join('')}</tr>`).join('');
+    ex.innerHTML = (read ? `<p class="muted chartread" style="margin:6px 0 0;font-size:13px">${esc(read)}</p>` : '') + `<details><summary class="muted" style="font-size:13px;cursor:pointer">Voir les données du graphique</summary><div class="tw"><table class="t"><thead><tr><th scope="col" style="text-align:left">Catégorie</th>${ds.map((x, i) => `<th scope="col">${esc(x.label || 'Valeur ' + (i + 1))}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></details>`;
+    host.insertAdjacentElement('afterend', ex);
+  } catch (e) { /* l'accessibilité ne doit jamais bloquer l'affichage */ }
+}
+/* ===== Adresse propre par page (#/explorer…) ===== */
+function ROUTES() { return [...document.querySelectorAll('section.view')].map((s) => s.id.replace(/^v-/, '')); }
+function routeFromHash() { const m = /^#\/([a-z0-9-]+)$/i.exec(location.hash || ''); return m && ROUTES().includes(m[1]) ? m[1] : null; }
+var _routing = false;
+function routePush(v) { if (_routing) return; const h = '#/' + v; if (location.hash !== h && !/^#(code|state|error|id_token|access_token)/.test(location.hash)) { try { history.replaceState(null, '', h); } catch (e) { /* ignore */ } } try { const n = document.querySelector('nav.side button[data-v="' + v + '"]'); document.title = (n ? n.textContent.trim() + ' · ' : '') + 'Observatoire de l’ESS'; } catch (e) { /* ignore */ } }
+window.addEventListener('hashchange', () => { const v = routeFromHash(); if (v) { _routing = true; try { showView(v); } finally { _routing = false; } } });
+Object.assign(window.ESS, { home30, chartA11y, routeFromHash });
 
 /* ======================================================================
    Paramètres & méthodes : le dossier « Paramètres » du dossier partagé (définitions, tables de correspondance,
@@ -25379,7 +25502,7 @@ const ursSig = (x) => (x == null ? 'NS' : (x >= 0 ? '+' : '−') + fInt(Math.abs
 /** Données structurées de la note pour un territoire et un trimestre. */
 function ursNoteData(terr, T, ipc) {
   if (ipc == null) { const a0 = ursIpcOf(T); if (a0 != null) ipc = a0; }
-  const D = { terr, T, T0: ursQ4(T), fam: [], sect: [], reg: [], warn: [] };
+  const D = { terr, T, T0: ursQ4(T), fam: [], sect: [], reg: [], warn: [], ipc };
   const line = (ch, sec, nom) => ({ ch, lab: URS_CH[ch], eff: ursEv(ch, terr, 'eff', T, sec, nom), etab: ursEv(ch, terr, 'etab', T, sec, nom), smpt: ursEv(ch, terr, 'smpt', T, sec, nom) });
   for (const ch of ['ESS', ...URS_FAM, 'PHESS']) D.fam.push(line(ch, 'TOTAL'));
   D.ess = D.fam[0]; D.ph = D.fam.at(-1);
@@ -25597,39 +25720,15 @@ function ursPubDocs() {
 function buildConjUrssaf(terr, T, ipc) {
   const D = ursNoteData(terr, T, ipc); const e = D.ess.eff; const p = D.ph.eff; const lab = terr.lab.split(' (')[0]; const src = `Source : Acoss-Urssaf, séries brutes, ${ursQLab(T)} (régime général hors MSA).`;
   if (!e) return [B.h1('Note de conjoncture impossible'), B.p(D.warn.join(' ') || 'Série non disponible pour ce territoire.')];
-  const sense = e.taux >= 0 ? 'progresse' : 'recule'; const docs = [B.bandeau(`Situation au ${ursQLab(T)}`), B.h1(`L’emploi dans l’ESS ${sense} de ${fDec(Math.abs(e.taux * 100), 1)}${NB}% sur un an${terr.id === 'FR' ? '' : ' : ' + lab}`),
-    B.chapeau(`Au ${ursQLab(T)}, l’économie sociale et solidaire compte ${fInt(e.v)} emplois salariés (${lab}), soit ${ursSig(e.solde)} emplois en un an. ${p ? `Le secteur privé hors ESS ${p.taux >= 0 ? 'progresse' : 'recule'} de ${fDec(Math.abs(p.taux * 100), 1)}${NB}% sur la même période.` : ''}`),
-    B.kpis([{ v: fInt(e.v), l: 'emplois salariés dans l’ESS' }, { v: ursSig(e.solde), l: 'solde net sur un an' }, { v: ursPct(e.taux), l: 'glissement annuel ESS' }, ...(p ? [{ v: ursPct(p.taux), l: 'privé hors ESS' }] : []), ...(D.ess.smpt ? [{ v: fInt(D.ess.smpt.v) + ' €', l: 'salaire moyen par tête, par mois' }] : [])])];
-  docs.push(B.h2('1. L’essentiel'), ...ursNoteText(D).map((x) => B.p(x)));
-  // 2. emploi par famille
-  const fams = D.fam.filter((f) => URS_FAM.includes(f.ch) && f.eff);
-  docs.push(B.h2('2. L’emploi par famille de l’ESS'));
-  if (fams.length) docs.push(B.p(fams.map((f) => `${f.lab} : ${fInt(f.eff.v)} emplois (${fDec(f.eff.v / e.v * 100, 1)}${NB}% de l’ESS), ${ursSig(f.eff.solde)} sur un an (${ursPct(f.eff.taux)}).`).join(' ')));
-  docs.push(B.table('Tableau 1 — Emplois salariés par famille', ['Famille', `Au ${ursQLab(D.T0)}`, `Au ${ursQLab(T)}`, 'Solde net', 'Évolution'], D.fam.map((f) => [f.lab, f.eff ? fInt(f.eff.v0) : 'NS', f.eff ? fInt(f.eff.v) : 'NS', ursSig(f.eff && f.eff.solde), ursPct(f.eff && f.eff.taux)]), null, src));
-  if (D.trend.length > 2) { const ts = D.trend.map((x) => x.t); const cfg = cfgLine(ts.map((x) => x.slice(0, 4) + ' ' + x.slice(5)), [{ label: 'ESS', data: D.trend.map((x) => x.e ? +(x.e.taux * 100).toFixed(2) : null), borderColor: DOC_COLORS.ESS, backgroundColor: DOC_COLORS.ESS }, { label: 'Privé hors ESS', data: D.trend.map((x) => x.p ? +(x.p.taux * 100).toFixed(2) : null), borderColor: '#3c3c3b', backgroundColor: '#3c3c3b' }], { doc: true, unit: ' %' }); docs.push(B.chart('Graphique 1 — Glissement annuel de l’emploi salarié (%)', cfg, src, 800, 300)); }
-  // 3. établissements
-  const ee = D.ess.etab; docs.push(B.h2('3. Les établissements employeurs'));
-  if (ee) docs.push(B.p(`L’ESS compte ${fInt(ee.v)} établissements employeurs au ${ursQLab(T)}, soit ${ursSig(ee.solde)} sur un an (${ursPct(ee.taux)})${D.ph.etab ? `, contre ${ursPct(D.ph.etab.taux)} dans le privé hors ESS` : ''}. Un établissement est comptabilisé s’il a une masse salariale strictement positive.`));
-  docs.push(B.table('Tableau 2 — Établissements employeurs par famille', ['Famille', `Au ${ursQLab(D.T0)}`, `Au ${ursQLab(T)}`, 'Solde net', 'Évolution'], D.fam.map((f) => [f.lab, f.etab ? fInt(f.etab.v0) : 'NS', f.etab ? fInt(f.etab.v) : 'NS', ursSig(f.etab && f.etab.solde), ursPct(f.etab && f.etab.taux)]), null, src));
-  // 4. secteurs
-  const S1 = D.sect.slice().sort((a, b) => a.e.solde - b.e.solde); const dn = S1.filter((x) => x.e.solde < 0).slice(0, 5); const up = S1.filter((x) => x.e.solde > 0).slice(-5).reverse();
-  if (S1.length) { docs.push(B.h2('4. Les dynamiques sectorielles'));
-    const phr = (x) => `${x.lab} (${ursSig(x.e.solde)}, ${ursPct(x.e.taux)}${x.p && x.p.taux != null ? `, contre ${ursPct(x.p.taux)} dans le privé hors ESS` : ''})`;
-    if (dn.length) docs.push(B.p(`Les secteurs qui perdent le plus d’emplois dans l’ESS : ${dn.map(phr).join(' ; ')}.`)); if (up.length) docs.push(B.p(`Les secteurs les plus créateurs d’emplois : ${up.map(phr).join(' ; ')}.`));
-    docs.push(B.table('Tableau 3 — Secteurs : plus fortes baisses et hausses de l’ESS', ['Secteur', 'Emplois ESS', 'Solde net', 'ESS', 'Privé hors ESS'], [...dn, ...up].map((x) => [x.lab, fInt(x.e.v), ursSig(x.e.solde), ursPct(x.e.taux), x.p ? ursPct(x.p.taux) : '—']), null, src + ' Nomenclature sectorielle propre à l’extraction.')); }
-  // 5. salaires
-  docs.push(B.h2('5. Les salaires'));
-  if (D.ess.smpt) docs.push(B.p(`Le salaire moyen par tête (SMPT) de l’ESS atteint ${fInt(D.ess.smpt.v)} € par mois au ${ursQLab(T)}, ${ursPct(D.ess.smpt.taux)} sur un an${D.ph.smpt ? `, contre ${fInt(D.ph.smpt.v)} € (${ursPct(D.ph.smpt.taux)}) dans le privé hors ESS` : ''}.${D.ess.reel != null ? ` Après prise en compte d’une inflation de ${fDec(ipc, 1)}${NB}%, l’évolution réelle est de ${ursPct(D.ess.reel)}.` : ' La comparaison avec l’inflation nécessite de renseigner l’évolution annuelle de l’indice des prix.'} Le SMPT est la masse salariale du trimestre rapportée à l’effectif moyen, ramenée au mois.`));
-  docs.push(B.table('Tableau 4 — Salaire moyen par tête (€/mois)', ['Famille', `Au ${ursQLab(D.T0)}`, `Au ${ursQLab(T)}`, 'Évolution nominale', ...(D.ess.reel != null ? ['Évolution réelle'] : [])], D.fam.map((f) => [f.lab, f.smpt ? fInt(f.smpt.v0) : 'NS', f.smpt ? fInt(f.smpt.v) : 'NS', ursPct(f.smpt && f.smpt.taux), ...(D.ess.reel != null ? [ursPct(f.reel)] : [])]), null, src));
-  // 6. régions
-  if (D.reg.length) { docs.push(B.h2('6. Dynamiques régionales')); const r = D.reg.slice().sort((a, b) => a.ev.taux - b.ev.taux);
-    docs.push(B.p(`Parmi les ${r.length} régions, la plus dynamique est ${r.at(-1).t.lab} (${ursPct(r.at(-1).ev.taux)}) et la plus en recul ${r[0].t.lab} (${ursPct(r[0].ev.taux)}).`));
-    docs.push(B.table('Tableau 5 — Emploi de l’ESS par région', ['Région', 'Emplois ESS', 'Solde net', 'ESS', 'Privé hors ESS', 'Salaire moyen ESS (€)'], r.map((x) => [x.t.lab, fInt(x.ev.v), ursSig(x.ev.solde), ursPct(x.ev.taux), x.ph ? ursPct(x.ph.taux) : '—', x.sm ? fInt(x.sm.v) : 'NS']), null, src)); }
-  if (D.retro.qs.length > 3) { docs.push(B.h2('7. Rétrospective depuis ' + D.retro.labels[0])); const cl = (ser) => ser.map((x) => ({ label: x.n, data: x.d.map((v) => (v == null ? null : +v.toFixed(1))), borderColor: x.c, backgroundColor: x.c }));
-    docs.push(B.p(`Pour chaque année, l’emploi est observé au même trimestre (${ursQLab(T).split(' ')[0]}) afin de neutraliser la saisonnalité des séries brutes. Base 100 en ${D.retro.labels[0]}.`), B.chart(`Graphique 2 — Emploi salarié, indice base 100 en ${D.retro.labels[0]}`, cfgLine(D.retro.labels, cl(D.retro.emp), { doc: true }), src, 800, 300), B.chart(`Graphique 3 — Établissements employeurs, indice base 100 en ${D.retro.labels[0]}`, cfgLine(D.retro.labels, cl(D.retro.etab), { doc: true }), src, 800, 300));
-    if (D.qfam.ser[0].d.filter((v) => v != null).length > 6) docs.push(B.chart('Graphique 4 — Glissement annuel de l’emploi par famille, par trimestre (%)', cfgLine(D.qfam.labs, cl(D.qfam.ser.filter((x) => ['ESS', 'ASSO', 'PHESS'].includes(x.ch))), { doc: true, unit: ' %' }), src, 800, 320)); }
+  const sense = e.taux >= 0 ? 'progresse' : 'recule'; const docs = [B.bandeau(`Situation au ${ursQLab(T)}`), B.h1(`${conjTitle(D, terr)}`),
+    B.chapeau(`Au ${ursQLab(T)}, l’économie sociale et solidaire compte ${fInt(e.v)} emplois salariés (${lab}), soit ${ursSig(e.solde)} emplois en un an. ${p ? `Le secteur privé hors ESS ${p.taux >= 0 ? 'progresse' : 'recule'} de ${fDec(Math.abs(p.taux * 100), 2)}${NB}% sur la même période.` : ''}`),
+    B.kpis([{ v: fInt(e.v), l: 'emplois salariés dans l’ESS' }, { v: ursSig(e.solde), l: 'solde net sur un an' }, { v: ursPct(e.taux, 2), l: 'glissement annuel ESS' }, ...(p ? [{ v: ursPct(p.taux, 2), l: 'privé hors ESS' }] : []), ...(D.ess.smpt ? [{ v: fInt(D.ess.smpt.v) + ' €', l: 'salaire moyen par tête, par mois' }] : [])])];
+  conjCore(D, terr, T, ipc, src, docs);
+  if (D.retro.qs.length > 3) { docs.push(B.h2('Rétrospective depuis ' + D.retro.labels[0])); const cl = (ser) => ser.map((x) => ({ label: x.n, data: x.d.map((v) => (v == null ? null : +v.toFixed(1))), borderColor: x.c, backgroundColor: x.c }));
+    docs.push(B.p(`Pour chaque année, l’emploi est observé au même trimestre (${ursQLab(T).split(' ')[0]}) afin de neutraliser la saisonnalité des séries brutes. Base 100 en ${D.retro.labels[0]}.`), B.chart(`Graphique 3 — Emploi salarié, indice base 100 en ${D.retro.labels[0]}`, cfgLine(D.retro.labels, cl(D.retro.emp), { doc: true }), src, 800, 300), B.chart(`Graphique 4 — Établissements employeurs, indice base 100 en ${D.retro.labels[0]}`, cfgLine(D.retro.labels, cl(D.retro.etab), { doc: true }), src, 800, 300));
+    if (D.qfam.ser[0].d.filter((v) => v != null).length > 6) docs.push(B.chart('Graphique 5 — Glissement annuel de l’emploi par famille, par trimestre (%)', cfgLine(D.qfam.labs, cl(D.qfam.ser.filter((x) => ['ESS', 'ASSO', 'PHESS'].includes(x.ch))), { doc: true, unit: ' %' }), src, 800, 320)); }
   const sm = D.smptH.filter((x) => x.e != null); if (sm.length > 1) docs.push(B.h3('Salaire moyen par tête et inflation depuis 2019'), B.table('Tableau 6 — SMPT et inflation', ['Trimestre', 'SMPT ESS (€/mois)', 'Évol. ESS', 'SMPT privé hors ESS', 'Évol. privé hors ESS', 'Inflation', 'ESS en termes réels'], sm.map((x) => [ursQLab(x.q), fInt(x.e), ursPct(x.gE), x.p != null ? fInt(x.p) : 'NS', ursPct(x.gP), x.ipc != null ? ursPct(x.ipc / 100) : '—', x.ipc != null && x.gE != null ? ursPct((1 + x.gE) / (1 + x.ipc / 100) - 1) : '—']), null, src + ' Inflation : ' + URS_IPC_SRC));
-  if (D.deps.length) { const dd = D.deps.slice().sort((a, b) => a.e.taux - b.e.taux); docs.push(B.h2('8. Analyse départementale'), B.p(`Parmi les ${dd.length} départements, l’emploi de l’ESS progresse le plus à ${dd.at(-1).t.lab} (${ursPct(dd.at(-1).e.taux)}) et recule le plus à ${dd[0].t.lab} (${ursPct(dd[0].e.taux)}).`),
+  if (D.deps.length) { const dd = D.deps.slice().sort((a, b) => a.e.taux - b.e.taux); docs.push(B.h2('Analyse départementale'), B.p(`Parmi les ${dd.length} départements, l’emploi de l’ESS progresse le plus à ${dd.at(-1).t.lab} (${ursPct(dd.at(-1).e.taux)}) et recule le plus à ${dd[0].t.lab} (${ursPct(dd[0].e.taux)}).`),
     B.table('Tableau 7 — Emploi de l’ESS par département', ['Département', 'Emplois ESS', 'Solde net', 'ESS', 'Privé hors ESS', 'Établissements ESS'], dd.map((x) => [x.t.lab, fInt(x.e.v), ursSig(x.e.solde), ursPct(x.e.taux), ursPct(x.p && x.p.taux), ursPct(x.q && x.q.taux)]), null, src), ...dd.slice().reverse().map((x) => B.p(ursDepText(x)))); }
   docs.push(B.h2('Source et méthode'), B.p(`Source : Acoss-Urssaf, base Séquoia (bordereaux de cotisations et déclarations sociales nominatives), extraction « ${D.src.file} ». Séries brutes, non corrigées des variations saisonnières : seules les comparaisons d’un même trimestre d’une année sur l’autre (glissement annuel) ont un sens conjoncturel.`),
     B.p('Emplois salariés au dernier jour du trimestre, chaque salarié comptant pour un quelle que soit sa durée de travail (ce ne sont pas des équivalents temps plein). Les salariés relevant de la MSA (environ 8 % de l’ESS : agriculture, agroalimentaire, ADMR, Crédit agricole, Groupama…) et les particuliers employeurs sont exclus. Champ ESS : associations, coopératives, mutuelles et fondations, hors APE 84 et caisses de congés payés ; le privé hors ESS comprend les autres employeurs du régime général, hors administrations.'),
@@ -25885,6 +25984,498 @@ function buildEpci(name, t) {
 }
 Object.assign(window.ESS, { panoExtra, buildEpci, paEpciList });
 
+/* ===== Note de conjoncture : lecture experte des séries Acoss-Urssaf (modèle : note ESS France, CRESS) ===== */
+const CJ_ABBR = [[/\bHébergt\b/g, 'Hébergement'], [/\bhébergt\b/g, 'hébergement'], [/\b(Hébrgt|Hébgt)\b/g, 'Hébergement'], [/\bpr\b/g, 'pour'], [/\bAut\./g, 'Autres'], [/\baut\./g, 'autres'], [/\borg\./g, 'organisations'], [/adhé\. volont\./g, 'adhésion volontaire'], [/\bsces\b/g, 'services'], [/\bfinanc\./g, 'financiers'], [/\bEnseigm?nt\b|\bEnseignemt\b/g, 'Enseignement'], [/\bhand\./g, 'handicapées'], [/enfants? handicap$/g, 'enfants handicapés'], [/\bperso\./g, 'personnes'], [/\bméd\./g, 'médicalisé'], [/\bsoc\./g, 'social'], [/\bact\./g, 'activités'], [/\bAct\./g, 'Activités'], [/\bhs\b/g, 'hors'], [/\bsf\b/g, 'sauf'], [/\bComm?\./g, 'Commerce'], [/\bCom\./g, 'Commerce'], [/\bauxiliaire\b/g, 'auxiliaires'], [/d.assur\./g, 'd’assurance'], [/\bsces financiers\b/g, 'services financiers']];
+const conjNice = (l) => { let x = String(l); for (const [r, t] of CJ_ABBR) x = x.replace(r, t); return x.replace(/\s;\s/g, ' / ').replace(/\s+/g, ' ').trim(); };
+const CJ_G10 = [
+  ['sante', 'Santé', /^86/], ['hms', 'Hébergement social et médico-social', /^87/], ['aad', 'Aide à domicile', /^8810A/],
+  ['asah', 'Action sociale sans hébergement (hors aide à domicile)', /^(8810B|8810C|8891|8899)/], ['ens', 'Enseignement', /^85/],
+  ['sport', 'Sports et loisirs', /^(931|932)/], ['arts', 'Arts et spectacles', /^(90|91)/], ['fin', 'Activités financières et d’assurance', /^(64|65|66)/],
+  ['hr', 'Hébergement et restauration', /^(55|56)/], ['com', 'Commerce', /^(45-46|47)/],
+];
+const cjCode = (s) => String(s).split('_')[0];
+/** Dix grands secteurs de l'ESS regroupés à partir des postes NAF de l'extraction (Santé, Hébergement social et médico-social, Aide à domicile…). */
+function conjG10(D) {
+  return CJ_G10.map(([k, lab, re]) => {
+    const m = D.sect.filter((x) => re.test(cjCode(x.sec))); if (!m.length) return null;
+    const v = m.reduce((a, x) => a + x.e.v, 0), v0 = m.reduce((a, x) => a + x.e.v0, 0); const solde = v - v0; const taux = v0 > 0 ? solde / v0 : null;
+    const drv = m.filter((x) => Math.sign(x.e.solde) === Math.sign(solde) && x.e.solde !== 0).sort((a, b) => Math.abs(b.e.solde) - Math.abs(a.e.solde)).slice(0, 2);
+    const pm = m.filter((x) => x.p && x.p.v0 > 0); const pv = pm.reduce((a, x) => a + x.p.v, 0), pv0 = pm.reduce((a, x) => a + x.p.v0, 0);
+    return { k, lab, v, v0, solde, taux, drv, pt: pv0 > 0 ? pv / pv0 - 1 : null, pn: pv0, n: m.length };
+  }).filter(Boolean);
+}
+/** Comparaison avec le privé hors ESS : écartée si la variation est hors norme (> 20 %) ou la base trop petite (changement de codification probable). */
+const conjPH = (t, base) => (t == null ? null : Math.abs(t) > 0.2 || (base != null && base < 300) ? 'ns' : t);
+const conjPHs = (t, base) => { const x = conjPH(t, base); return x == null ? '—' : x === 'ns' ? 'n.s.' : ursPct(x); };
+function conjTaux(ch, terr, T, sec, nom) { const e = ursEv(ch, terr, 'eff', T, sec, nom); return e ? e.taux : null; }
+/** Série de signes du glissement annuel : trimestres consécutifs de même sens, trimestre précédent de sens contraire, et dernier trimestre de même sens avant la séquence contraire. */
+function conjStreak(ch, terr, T) {
+  const ts = state.urs.times; const i = ts.indexOf(T); const cur = conjTaux(ch, terr, T); if (cur == null || cur === 0) return null;
+  const sg = cur < 0 ? -1 : 1; let n = 1, j = i - 1;
+  for (; j >= 4; j--) { const x = conjTaux(ch, terr, ts[j]); if (x == null || Math.sign(x) !== sg) break; n++; }
+  const opp = j >= 4 ? ts[j] : null; let same = null;
+  for (let k = j; k >= 4; k--) { const x = conjTaux(ch, terr, ts[k]); if (x == null) break; if (Math.sign(x) === sg) { same = ts[k]; break; } }
+  return { sg, n, opp, same, first: ts[i - n + 1] };
+}
+const conjOrd = (n) => (n === 1 ? 'premier' : n + 'e');
+/** Titre principal : message du constat plutôt que simple libellé. */
+function conjTitle(D, terr) {
+  const e = D.ess.eff, p = D.ph.eff; const lab = terr.lab.split(' (')[0]; const where = terr.id === 'FR' ? '' : ' : ' + lab; if (!e || e.taux == null) return 'Note de conjoncture de l’emploi dans l’ESS' + where;
+  const t = ursPct(e.taux, 2).replace(NB + '%', NB + '%');
+  if (e.taux < 0) return `L’ESS perd des emplois (${t} sur un an)${p && p.taux > 0 ? ' alors que le privé hors ESS en gagne' : p && p.taux < 0 ? ', comme le privé hors ESS' : ''}${where}`;
+  if (p && p.taux != null) return `${e.taux > p.taux ? 'L’emploi dans l’ESS progresse plus vite que dans le privé hors ESS' : 'L’emploi dans l’ESS progresse moins vite que dans le privé hors ESS'} (${t} sur un an)${where}`;
+  return `L’emploi dans l’ESS progresse de ${fDec(Math.abs(e.taux * 100), 2)}${NB}% sur un an${where}`;
+}
+const conjQ = (tq) => ursQLab(tq);
+/** Cœur de la note : sections avec titres-messages, lectures de tendance, dix grands secteurs, salaires et régions. */
+function conjCore(D, terr, T, ipc, src, docs) {
+  const e = D.ess.eff, p = D.ph.eff, lab = terr.lab.split(' (')[0]; const fams = D.fam.filter((f) => URS_FAM.includes(f.ch) && f.eff && f.eff.taux != null); const ts = state.urs.times; const iT = ts.indexOf(T);
+  // ---- 1. Emploi : constat, tendance, familles
+  const hEmp = e.taux < 0 ? 'L’ESS perd des emplois' : p && p.taux != null && e.taux < p.taux ? 'Un emploi ESS qui progresse moins vite que le privé' : 'L’emploi de l’ESS progresse';
+  docs.push(B.h2(hEmp));
+  const P = [`Au ${conjQ(T)}, l’ESS compte ${fInt(e.v)} emplois salariés (${lab}, régime général hors MSA) : ${ursSig(e.solde)} emplois en un an, soit ${ursPct(e.taux, 2)} en glissement annuel par rapport au ${conjQ(D.T0)}.`];
+  if (p && p.taux != null) P.push(`Dans le privé hors ESS, l’emploi évolue de ${ursPct(p.taux, 2)} (${ursSig(p.solde)} emplois) : ${Math.abs(e.taux - p.taux) < 0.0005 ? 'les deux dynamiques sont quasi identiques' : `l’ESS fait ${e.taux > p.taux ? 'mieux' : 'moins bien'} de ${fDec(Math.abs(e.taux - p.taux) * 100, 2)}${NB}point${Math.abs(e.taux - p.taux) >= 0.015 ? 's' : ''}`}.`);
+  const st = conjStreak('ESS', terr, T); const tPrev = conjTaux('ESS', terr, ts[iT - 1]);
+  if (st) {
+    if (st.sg < 0) P.push(`${st.n === 1 ? 'Le glissement annuel devient négatif' : `Le glissement annuel est négatif pour le ${conjOrd(st.n)} trimestre consécutif (depuis le ${conjQ(st.first)})`}${st.same ? ` : l’ESS n’avait plus enregistré de recul annuel depuis le ${conjQ(st.same)}` : ''}.`);
+    else P.push(st.n === 1 ? `Le glissement annuel redevient positif${st.opp ? ` après un recul au ${conjQ(st.opp)}` : ''}.` : `Le glissement annuel est positif depuis ${st.n} trimestres${st.same ? ` ; le dernier recul annuel date du ${conjQ(st.same)}` : ''}.`);
+  }
+  if (tPrev != null && e.taux != null) { const d = e.taux - tPrev; P.push(`Rythme : ${ursPct(tPrev, 2)} au ${conjQ(ts[iT - 1])}, puis ${ursPct(e.taux, 2)} au ${conjQ(T)} : ${Math.abs(d) < 0.0005 ? 'tendance stable' : e.taux < 0 ? (d < 0 ? 'la baisse s’accentue' : 'la baisse se réduit') : (d < 0 ? 'la croissance ralentit' : 'la croissance s’accélère')}.`); }
+  docs.push(...P.map((x) => B.p(x)));
+  if (fams.length) {
+    const byRel = fams.slice().sort((a, b) => a.eff.taux - b.eff.taux);
+    const ph = (f) => { const s = conjStreak(f.ch, terr, T); return s && s.sg < 0 && s.n >= 2 ? `, ${conjOrd(s.n)} trimestre consécutif de baisse` : ''; };
+    const L = fams.map((f) => `${f.lab.toLowerCase()} ${ursPct(f.eff.taux, 2)} (${ursSig(f.eff.solde)} postes${ph(f)})`);
+    docs.push(B.p(`Par famille : ${L.join(' ; ')}.${byRel[0].eff.taux < 0 ? ` Proportionnellement, ${{ ASSO: 'les associations sont', COOP: 'les coopératives sont', MUT: 'les mutuelles sont', FOND: 'les fondations sont' }[byRel[0].ch]} la famille la plus touchée.` : ''}`));
+    const fo = fams.find((f) => f.ch === 'FOND'); if (fo) { const sol = [3, 2, 1, 0].map((k) => ursEv('FOND', terr, 'eff', ts[iT - k])).map((x) => (x ? x.solde : null)); if (sol.every((x) => x != null) && sol[3] > 0 && sol[3] < Math.max(...sol) * 0.75) docs.push(B.p(`Les fondations restent en croissance mais décélèrent : les créations nettes d’emplois sur un an passent de ${fInt(Math.max(...sol))} à ${fInt(sol[3])} sur les quatre derniers trimestres.`)); }
+  }
+  docs.push(B.table('Tableau 1 — Emplois salariés par famille', ['Famille', `Au ${conjQ(D.T0)}`, `Au ${conjQ(T)}`, 'Solde net', 'Évolution'], D.fam.map((f) => [f.lab, f.eff ? fInt(f.eff.v0) : 'NS', f.eff ? fInt(f.eff.v) : 'NS', ursSig(f.eff && f.eff.solde), ursPct(f.eff && f.eff.taux, 2)]), null, src));
+  if (D.trend.length > 2) { const tt = D.trend.map((x) => x.t); docs.push(B.chart('Graphique 1 — Glissement annuel de l’emploi salarié (%)', cfgLine(tt.map((x) => x.slice(0, 4) + ' ' + x.slice(5)), [{ label: 'ESS', data: D.trend.map((x) => x.e ? +(x.e.taux * 100).toFixed(2) : null), borderColor: DOC_COLORS.ESS, backgroundColor: DOC_COLORS.ESS }, { label: 'Privé hors ESS', data: D.trend.map((x) => x.p ? +(x.p.taux * 100).toFixed(2) : null), borderColor: '#3c3c3b', backgroundColor: '#3c3c3b' }], { doc: true, unit: ' %' }), src, 800, 300)); }
+  if (D.part && D.part.v != null && D.part.v0 != null) docs.push(B.p(`Dans le champ de l’Urssaf (régime général hors MSA), l’ESS représente ${fDec(D.part.v * 100, 1)}${NB}% de l’emploi salarié privé, contre ${fDec(D.part.v0 * 100, 1)}${NB}% un an plus tôt. Cette part diffère de celle calculée à partir de l’Insee (FLORES), qui couvre tous les régimes de sécurité sociale, dont la MSA : les deux chiffres ne se comparent pas.`));
+  // ---- 2. Établissements
+  const ee = D.ess.etab; const fe = D.fam.filter((f) => URS_FAM.includes(f.ch) && f.etab && f.etab.taux != null);
+  if (ee) {
+    const contre = ee.taux < 0 ? fe.filter((f) => f.etab.taux > 0) : fe.filter((f) => f.etab.taux < 0);
+    docs.push(B.h2(ee.taux < 0 ? `Recul du nombre d’établissements employeurs${contre.length ? ` malgré l’essor ${contre.length > 1 ? 'des ' : 'des '}${contre.map((f) => f.lab.toLowerCase()).join(' et des ')}` : ''}` : `Hausse du nombre d’établissements employeurs${contre.length ? `, sauf ${contre.map((f) => f.lab.toLowerCase()).join(' et ')}` : ''}`));
+    docs.push(B.p(`L’ESS compte ${fInt(ee.v)} établissements employeurs au ${conjQ(T)}, soit ${ursSig(ee.solde)} sur un an (${ursPct(ee.taux, 2)})${D.ph.etab ? `, contre ${ursPct(D.ph.etab.taux, 2)} dans le privé hors ESS` : ''}. ${fe.map((f) => `${f.lab} ${ursPct(f.etab.taux, 2)}`).join(', ')}. Un établissement est compté s’il a une masse salariale strictement positive.`));
+    docs.push(B.table('Tableau 2 — Établissements employeurs par famille', ['Famille', `Au ${conjQ(D.T0)}`, `Au ${conjQ(T)}`, 'Solde net', 'Évolution'], D.fam.map((f) => [f.lab, f.etab ? fInt(f.etab.v0) : 'NS', f.etab ? fInt(f.etab.v) : 'NS', ursSig(f.etab && f.etab.solde), ursPct(f.etab && f.etab.taux, 2)]), null, src));
+  }
+  // ---- 3. Secteurs : dix grands secteurs puis postes NAF les plus mouvants
+  const G = conjG10(D);
+  if (G.length) {
+    const up = G.filter((g) => g.solde > 0).sort((a, b) => b.solde - a.solde), dn = G.filter((g) => g.solde < 0).sort((a, b) => a.solde - b.solde);
+    docs.push(B.h2(dn.length && up.length ? 'Des pertes d’emploi aux différences sectorielles marquées' : dn.length ? 'Des pertes d’emploi dans la plupart des grands secteurs' : 'Des créations d’emploi dans la plupart des grands secteurs'));
+    const dsc = (g) => { const x = (g.k === 'aad' ? [] : g.drv).slice(0, 2).map((d) => `${conjNice(ursSecLab(d.sec)).replace(/\s*\(.*\)$/, '')} (${ursPct(d.e.taux)})`); return x.length ? ` — porté par ${x.join(' et ')}` : ''; };
+    if (dn.length) docs.push(B.p(`Secteurs en baisse : ${dn.map((g) => `${g.lab.toLowerCase()} ${ursPct(g.taux)} (${ursSig(g.solde)} emplois)${dsc(g)}`).join(' ; ')}.`));
+    if (up.length) docs.push(B.p(`Secteurs en hausse : ${up.map((g) => `${g.lab.toLowerCase()} ${ursPct(g.taux)} (${ursSig(g.solde)} emplois)${dsc(g)}`).join(' ; ')}.`));
+    const ad = G.find((g) => g.k === 'aad'); if (ad && ad.pt != null) { const c = conjPH(ad.pt, ad.pn); if (c !== 'ns' && c != null) docs.push(B.p(`Dans l’aide à domicile, l’emploi ESS évolue de ${ursPct(ad.taux)} alors que les entreprises privées hors ESS du secteur évoluent de ${ursPct(c)}.`)); }
+    docs.push(B.table('Tableau 3 — Les grands secteurs d’activité de l’ESS', ['Secteur', 'Emplois ESS', 'Solde net', 'ESS', 'Privé hors ESS', 'Principaux postes moteurs'], G.slice().sort((a, b) => b.v - a.v).map((g) => [g.lab, fInt(g.v), ursSig(g.solde), ursPct(g.taux), conjPHs(g.pt, g.pn), (g.k === 'aad' ? [] : g.drv).map((d) => `${conjNice(ursSecLab(d.sec)).replace(/\s*\(.*\)$/, '')} ${ursPct(d.e.taux)}`).join(' ; ') || '—']), null, src + ' Regroupement des postes NAF publiés dans l’extraction ; « n.s. » : variation supérieure à 20 % ou base trop faible pour être interprétée.'));
+  }
+  const S1 = D.sect.slice().sort((a, b) => a.e.solde - b.e.solde); const dn = S1.filter((x) => x.e.solde < 0).slice(0, 5); const up = S1.filter((x) => x.e.solde > 0).slice(-5).reverse();
+  if (S1.length) {
+    const nm = (x) => conjNice(x.lab); const phr = (x) => { const c = x.p ? conjPH(x.p.taux, x.p.v0) : null; return `${nm(x)} (${ursSig(x.e.solde)}, ${ursPct(x.e.taux)}${c == null ? '' : c === 'ns' ? '' : `, contre ${ursPct(c)} dans le privé hors ESS`})`; };
+    docs.push(B.h3('Les postes d’activité les plus mouvants'));
+    if (dn.length) docs.push(B.p(`Plus fortes pertes d’emplois : ${dn.map(phr).join(' ; ')}.`)); if (up.length) docs.push(B.p(`Plus fortes créations d’emplois : ${up.map(phr).join(' ; ')}.`));
+    docs.push(B.table('Tableau 4 — Postes d’activité : plus fortes baisses et hausses de l’ESS', ['Poste d’activité (NAF)', 'Emplois ESS', 'Solde net', 'ESS', 'Privé hors ESS'], [...dn, ...up].map((x) => [nm(x), fInt(x.e.v), ursSig(x.e.solde), ursPct(x.e.taux), x.p ? conjPHs(x.p.taux, x.p.v0) : '—']), null, src + ' « n.s. » : variation du privé hors ESS supérieure à 20 % (changement de codification probable).'));
+  }
+  // ---- 4. Salaires
+  const sm = D.ess.smpt, sp = D.ph.smpt;
+  if (sm) {
+    const reel = D.ess.reel; const rgood = reel != null && reel >= 0;
+    docs.push(B.h2(reel == null ? 'Salaires : une progression à lire au regard de l’inflation' : `Salaires : ${rgood ? 'une progression supérieure à l’inflation' : 'un recul en termes réels'}${sp && sp.taux != null && sm.taux < sp.taux ? ', mais moins rapide que dans le privé hors ESS' : ''}`));
+    const tx = [`Le salaire moyen par tête (SMPT) de l’ESS atteint ${fInt(sm.v)} € par mois au ${conjQ(T)}, ${ursPct(sm.taux, 1)} sur un an.`];
+    const ip = D.ipc != null ? D.ipc : ipc; if (ip != null && reel != null) tx.push(`L’inflation étant de ${fDec(ip, 1)}${NB}%, l’évolution réelle est de ${ursPct(reel, 1)}.`); else tx.push('Pour comparer avec l’inflation, renseignez l’évolution annuelle des prix (champ « Inflation »).');
+    if (sp && sp.v) tx.push(`Dans le privé hors ESS, le SMPT est de ${fInt(sp.v)} € (${ursPct(sp.taux, 1)}) : l’écart de niveau est de ${fDec((1 - sm.v / sp.v) * 100, 0)}${NB}% en défaveur de l’ESS${sp.taux != null && sm.taux < sp.taux ? ' et il se creuse' : ''}.`);
+    docs.push(...tx.map((x) => B.p(x)));
+    const fm = fams.map((f) => ({ f, s: f.smpt })).filter((x) => x.s && x.s.v); if (fm.length) docs.push(B.p(`Par famille : ${fm.map((x) => `${x.f.lab.toLowerCase()} ${fInt(x.s.v)} € (${ursPct(x.s.taux, 1)})`).join(' ; ')}. Les moyennes ne mesurent pas le niveau de vie local et mêlent des métiers et des temps de travail très différents.`));
+    const rs = D.reg.filter((x) => x.sm && x.sm.v).sort((a, b) => b.sm.v - a.sm.v); if (rs.length >= 7) docs.push(B.p(`Les salaires de l’ESS sont les plus élevés en ${rs.slice(0, 3).map((x) => `${x.t.lab} (${fInt(x.sm.v)} €)`).join(', ')} et les plus bas en ${rs.slice(-3).reverse().map((x) => `${x.t.lab} (${fInt(x.sm.v)} €)`).join(', ')}. L’évolution la plus rapide est observée en ${(() => { const q = D.reg.filter((x) => x.sm && x.sm.taux != null).sort((a, b) => b.sm.taux - a.sm.taux)[0]; return q ? `${q.t.lab} (${ursPct(q.sm.taux, 1)})` : 'NS'; })()}.`));
+    docs.push(B.table('Tableau 5 — Salaire moyen par tête (€/mois)', ['Famille', `Au ${conjQ(D.T0)}`, `Au ${conjQ(T)}`, 'Évolution nominale', ...(reel != null ? ['Évolution réelle'] : [])], D.fam.map((f) => [f.lab, f.smpt ? fInt(f.smpt.v0) : 'NS', f.smpt ? fInt(f.smpt.v) : 'NS', ursPct(f.smpt && f.smpt.taux, 1), ...(reel != null ? [ursPct(f.reel, 1)] : [])]), null, src));
+  }
+  // ---- 5. Régions
+  if (D.reg.length) {
+    const r = D.reg.slice().sort((a, b) => a.ev.taux - b.ev.taux); const dec = r.filter((x) => x.ev.taux < 0); const om = r.filter((x) => URS_OM.includes(x.t.a)); const mt = r.filter((x) => !URS_OM.includes(x.t.a));
+    docs.push(B.h2(dec.length === r.length ? 'Toutes les régions perdent des emplois' : dec.length > r.length / 2 ? 'Un recul de l’emploi dans la majorité des régions' : 'Des dynamiques régionales contrastées'));
+    const P2 = [`${dec.length} région${dec.length > 1 ? 's' : ''} sur ${r.length} perdent des emplois en glissement annuel. La plus dynamique est ${r.at(-1).t.lab} (${ursPct(r.at(-1).ev.taux, 1)}), la plus en recul ${r[0].t.lab} (${ursPct(r[0].ev.taux, 1)}).`];
+    if (terr.id === 'FR' && om.length) { const mdec = mt.filter((x) => x.ev.taux < 0).length; P2.push(`En métropole, ${mdec} régions sur ${mt.length} reculent ; la situation est plus polarisée dans les outre-mer (${om.slice().sort((a, b) => b.ev.taux - a.ev.taux).map((x) => `${x.t.lab} ${ursPct(x.ev.taux, 1)}`).join(', ')}).`); }
+    docs.push(...P2.map((x) => B.p(x)));
+    docs.push(B.chart('Graphique 2 — Évolution de l’emploi de l’ESS par région, en glissement annuel (%)', cfgBarH(r.slice().reverse().map((x) => x.t.lab), r.slice().reverse().map((x) => +(x.ev.taux * 100).toFixed(1)), { doc: true, unit: ' %', colors: r.slice().reverse().map((x) => (x.ev.taux < 0 ? '#e39a91' : '#1070b0')) }), src, 800, Math.max(260, 22 * r.length + 40)));
+    docs.push(B.table('Tableau 6 — Emploi de l’ESS par région', ['Région', 'Emplois ESS', 'Solde net', 'ESS', 'Privé hors ESS', 'Salaire moyen ESS (€)'], r.map((x) => [x.t.lab, fInt(x.ev.v), ursSig(x.ev.solde), ursPct(x.ev.taux, 1), x.ph ? ursPct(x.ph.taux, 1) : '—', x.sm ? fInt(x.sm.v) : 'NS']), null, src));
+    if (terr.id === 'FR') docs.push(B.box('Mayotte', 'Mayotte n’est pas identifiable dans l’extraction Acoss-Urssaf : elle n’est donc pas comprise dans ces régions ni dans le total France entière.'));
+  }
+}
+
+/* ===== Base d'expertise de l'Expert ESS : statistiques, économétrie, data science, ESS, politiques publiques, plaidoyer, informatique ===== */
+const SAVOIR = {
+  statistiques: {
+    titre: 'Statistiques de l’emploi et lecture critique des chiffres',
+    regles: [
+      'FLORES (Insee) est exhaustif (sources administratives) : pas d’erreur d’échantillonnage, mais des biais de champ, de nomenclature, de secret statistique et de millésime. Photographie annuelle des postes au 31 décembre : aucune évolution calculable à partir d’un seul millésime ; la comparabilité entre deux millésimes n’est pas garantie (Insee).',
+      'Séries Acoss-Urssaf : emplois en fin de trimestre, régime général hors MSA, séries brutes non corrigées des variations saisonnières. Seul le glissement annuel (T / T−4) a un sens conjoncturel ; ne jamais comparer deux trimestres consécutifs en brut. L’Insee révise ses séries de conjoncture à chaque publication, et les modèles CVS sont recalculés une fois par an (T1) : l’ampleur des révisions n’est pas documentée dans la note méthodologique, donc ne pas surinterpréter un écart de quelques dixièmes de point.',
+      'Taux d’accroissement = (final − initial) / initial ; coefficient multiplicateur = final / initial ; TCAM = (final / initial)^(1/n) − 1 ; solde net = final − initial. Ne jamais additionner des taux : additionner les effectifs, recalculer ensuite. Distinguer points de pourcentage et pourcentage.',
+      'Petits effectifs : une variation de quelques postes sur une base de quelques dizaines n’est pas un signal. Écarter les variations hors norme (> 20 %) quand la base est faible ou qu’un changement de codification est probable (exemple vu : « Action sociale sans hébergement n.c.a. » du privé hors ESS à −28 %).',
+      'Secret statistique : cases masquées jamais recalculées par différence ; seuils usuels Urssaf (moins de 3 établissements ou 10 salariés) et règle de dominance. Ne jamais publier une case secrète reconstituée isolément.',
+      'Deux « parts de l’ESS dans l’emploi privé » ne se comparent pas : FLORES (tous régimes, y compris MSA, postes au 31/12) et Urssaf (régime général hors MSA). Exemple : 13,4 % (FLORES 2022) contre 11,2 % (Urssaf T4 2025).',
+      'Périmètre statistique de l’ESS (2008, Insee/État/CNCRESS) : associations, coopératives, mutuelles, fondations par catégories juridiques, hors APE 84 ; les sociétés commerciales de l’ESS (loi 2014) et le « halo » ne sont pas dans la statistique courante. Les chiffres diffèrent d’une source à l’autre pour cette raison.',
+    ],
+  },
+  econometrie: {
+    titre: 'Méthodes d’analyse économique applicables aux données de l’observatoire',
+    regles: [
+      'Indice de spécificité (quotient de localisation) = (part du secteur dans l’emploi ESS du territoire) / (part du secteur dans l’emploi ESS de la référence) ; ou, comme dans l’Explorer, poids de l’ESS dans le territoire rapporté à son poids moyen (100 = moyenne). Supérieur à 100 : spécialisation ; ne dit rien de la performance.',
+      'Analyse structurelle-résiduelle (shift-share) : décomposer l’écart de croissance d’un territoire en effet de structure sectorielle (il a plus de secteurs porteurs) et effet propre (il fait mieux ou moins bien à secteur égal). À utiliser avant de conclure qu’un territoire est « plus dynamique ».',
+      'Contribution à la croissance : contribution du secteur = solde du secteur / emploi total initial. Utile pour expliquer un recul (par exemple l’enseignement et l’action sociale dans le recul 2025).',
+      'Corrélation n’est pas causalité : toute explication d’une hausse ou d’une baisse (budgets publics, inflation, JOP, cyclone) est une hypothèse à présenter comme telle, avec ce que les données montrent (secteurs, familles, calendrier) et ce qu’elles ne montrent pas.',
+      'Comparaisons de territoires : rapporter à la population ou à l’emploi total ; attention à l’erreur écologique (ne pas inférer le comportement d’une structure à partir d’une moyenne territoriale) et à l’effet de taille.',
+      'Séries temporelles : tendance, saisonnalité, rupture. Les ruptures de série connues doivent être signalées (changement de millésime FLORES, périmètre 2021 sans APE 84, passage BRC → DSN en 2016).',
+      'Aucune régression ni inférence causale à partir des seuls tableaux agrégés : sans microdonnées ni plan d’identification (différence de différences, etc.), s’en tenir à la description et aux ordres de grandeur.',
+    ],
+  },
+  data_science: {
+    titre: 'Qualité des données et reproductibilité',
+    regles: [
+      'Toujours dire quelle source, quel millésime ou trimestre, quel fichier, quel champ et quelle série (brute ou CVS) alimentent un chiffre.',
+      'Contrôles avant publication : rapprocher les totaux des chiffres officiels (Insee, ESS France), vérifier les sommes de parties, les cases secrètes, les doublons de secteurs entre nomenclatures, les changements de typologie selon le niveau géographique.',
+      'Les nomenclatures sectorielles changent avec le niveau géographique (France, région, département, intercommunalité, commune) : plus le territoire est petit, plus le détail est grossier ; les libellés Insee d’origine doivent être conservés à l’affichage, la correspondance entre millésimes ne sert qu’à comparer.',
+      'Toute transformation doit être reproductible (même fichier, même résultat) et documentée ; garder les fichiers sources intacts.',
+    ],
+  },
+  ess_economie_droit: {
+    titre: 'Économie sociale et solidaire : droit, champ et acteurs',
+    regles: [
+      'Loi n° 2014-856 du 31 juillet 2014 : art. 1 définit l’ESS par trois conditions cumulatives (but autre que le seul partage des bénéfices, gouvernance démocratique, bénéfices majoritairement réinvestis et réserves impartageables) ; art. 2 ouvre l’ESS aux sociétés commerciales respectant ces principes avec une recherche d’utilité sociale ; art. 6 charge les CRESS de publier la liste des entreprises de l’ESS (extraite de Sirene).',
+      'Les CRESS contribuent à la collecte, à l’exploitation et à la mise à disposition des données économiques de l’ESS (missions confiées par la loi de 2014) ; ESS France est la chambre française de l’ESS et porte l’Observatoire national (ONESS) avec le réseau des observatoires régionaux.',
+      'Poids de l’ESS : ESS France cite 2,7 millions de salariés, 147 000 à 152 000 entreprises employeuses et 13,4 % à 13,7 % de l’emploi salarié privé selon l’édition (FLORES 2021/2022). Vérifier le millésime avant de citer.',
+      'Sociétés commerciales de l’ESS (SCESS) : 4 501 identifiées en juillet 2024 (maximum), environ 2,9 % des entreprises ESS, dont 556 agréées ESUS (ESS France, Les SCESS #1, septembre 2025). Fiabilité limitée, ne pas en tirer de causalité.',
+      'ESUS : agrément d’entreprise solidaire d’utilité sociale ; 2 896 structures en 2025 selon la stratégie nationale.',
+      'Aucun compte satellite de l’ESS en comptabilité nationale française à ce jour : sa création est une action de la stratégie nationale 2026 (« créer un compte satellite approché »).',
+    ],
+  },
+  politiques_publiques: {
+    titre: 'Politiques publiques de l’ESS (état des sources au 16/11/2026)',
+    regles: [
+      'Stratégie nationale de l’ESS : adoptée le 9 juillet 2026 par le Conseil supérieur de l’ESS, publiée le 16 juillet 2026 (Trésor). Horizon 2030 ; 5 axes, 28 orientations, 108 actions, 10 indicateurs de suivi. Concertation avril-septembre 2025 (70 consultations nationales, 18 régionales, près de 2 000 contributions en ligne).',
+      'Objectifs 2030 cités par le Trésor : part de l’ESS de 13,7 % à 15 % de l’emploi privé ; 3 500 structures ESUS ; 1,5 Md€ d’épargne collectée par les entreprises solidaires. Aucune enveloppe budgétaire dédiée n’est chiffrée dans les pages lues.',
+      'Mesures utiles à l’observatoire : « créer un compte satellite approché » (orientation 6), identifier l’ESS dans les nomenclatures statistiques, « orange budgétaire » (document de politique transversale) dans les lois de finances, correspondant ESS dans les services de l’État en région, comité interministériel de l’ESS, commande publique (objectif d’achats publics à 3 % cité).',
+      'Position des acteurs (Carenews, 29/07/2026) : les réseaux de l’ESS se sont abstenus (42 voix) et l’État a voté pour (8 voix) : critique du manque d’objectifs précis et de financements dédiés, notamment pour les CRESS. À attribuer comme position d’acteurs, pas comme fait.',
+      'PLF 2026 : propositions d’ESS France (octobre 2025) : « orange budgétaire », +20 M€ sur le programme 305 action 04 (budget ESS du ministère à 12,3 M€, soit −54 % selon ESS France), +250 000 € pour un compte satellite à l’Insee, +3 M€ pour la fonction accueil-information-orientation des CRESS (soutien moyen d’environ 90 000 € par CRESS), +4 M€ pour le DLA, +2,09 M€ pour les PTCE. Le sort final de ces amendements n’est pas établi dans les sources lues.',
+      'Cour des comptes : soutien public à l’ESS d’environ 16 Md€ en 2024, soit 3,61 % des dépenses nettes de l’État (chiffre cité par ESS France).',
+      'Avant de citer un montant ou un vote, vérifier qu’il est encore d’actualité (recherche web) et dire de quelle source il provient.',
+    ],
+  },
+  plaidoyer: {
+    titre: 'Plaidoyer fondé sur les données',
+    regles: [
+      'Structure d’un message : un chiffre vérifié (avec source, période, territoire) → l’enjeu pour le territoire → la demande précise (qui doit faire quoi) → la preuve ou l’exemple → l’interlocuteur visé.',
+      'Un plaidoyer crédible sépare le constat chiffré (fait), l’interprétation (hypothèse) et la demande (position). Attribuer les positions aux acteurs qui les portent.',
+      'Ne jamais gonfler un chiffre : ne pas comparer des champs différents (FLORES / Urssaf), ne pas présenter comme tendance un écart non significatif, ne pas citer un recul en emplois sans rappeler la base.',
+      'Arguments d’emploi de l’ESS : stabilité relative de l’emploi, ancrage territorial, présence dans l’action sociale, la santé, l’enseignement, le sport et la culture ; limites à dire : l’emploi salarié ne mesure ni le bénévolat ni l’utilité sociale.',
+      'Neutralité : la CRESS est une structure à mission d’intérêt général ; plaider pour l’ESS et ses besoins sans prendre parti pour une formation politique. Les recommandations de politique publique sont présentées comme des options, avec leurs coûts et leurs limites.',
+      'Formats : fiche d’une page (3 chiffres, 1 graphique, 1 demande), note aux élus, communiqué, argumentaire pour une audition ou un Mois de l’ESS.',
+    ],
+  },
+  communication: {
+    titre: 'Communication des chiffres',
+    regles: [
+      'Titre-message qui dit le constat (« L’ESS perd des emplois »), chiffre clé en premier, source et période sous chaque graphique.',
+      'Public non initié : phrases courtes, définitions à la première occurrence (salarié, établissement, glissement annuel, solde net), pas de jargon ni d’abréviation.',
+      'Un graphique = un message ; échelle honnête (axe à zéro pour les barres) ; couleurs sobres ; description textuelle et tableau de données pour l’accessibilité.',
+      'Toujours indiquer ce que le chiffre ne dit pas (bénévolat, travail non déclaré, périmètre).',
+    ],
+  },
+  mayotte: {
+    titre: 'Spécificités de Mayotte (sources à dater)',
+    regles: [
+      'Mayotte n’est pas identifiable dans l’extraction Acoss-Urssaf (code 9F non rattaché) et n’est pas couverte par FLORES : ne pas lui attribuer de chiffre issu de ces sources ; l’indiquer explicitement.',
+      'Chiffres cités par la CRESS (à vérifier, anciens) : ESS à 14 % des entreprises mahoraises (281 structures) et 23 % de l’emploi privé, sur des données de 2016 (Carenews, janvier 2025) ; 14 % des salariés selon Mayotte Hebdo (août 2026). Les deux 14 % portent sur des objets différents.',
+      'Cyclone Chido (14 décembre 2024) : 63 % des structures ESS interrogées par la CRESS ont subi la destruction partielle ou totale de locaux ou de matériel ; la CRESS estime la commande publique à plus de 50 % de l’économie (affirmation sans source citée).',
+      'Dispositifs : So’Défi (aide à l’investissement jusqu’à 50 000 €, fonctionnement jusqu’à 30 000 €, insertion 2 000 € par salarié embauché, appel à projets de 2 M€ par an lancé en septembre 2024 ; montants à vérifier pour 2026), Cap Essentiel, Faniya Lab, Guid’Asso, Institut CRESS Mayotte.',
+      'Économie informelle et couverture statistique : non documentées dans les sources lues ; le dire plutôt que de combler par des estimations.',
+    ],
+  },
+  sources_academiques: {
+    titre: 'Références académiques et savantes (fonds de connaissance ; à ne citer que si nécessaire, avec année et limites)',
+    regles: [
+      'Tchernonog V., Prouteau L., Le Paysage associatif français. Mesures et évolutions, 3e éd., Juris éditions / Dalloz, 2019 (dossier « Profil et poids des associations », Jurisassociations n° 596, 1er avril 2019). Données 2017 : environ 1,5 million d’associations en activité (estimation croisant créations, RNA et enquête), dont 159 000 employeuses (89 % sans salarié) ; 1 850 000 postes salariés (1 568 000 ETP) ; budget cumulé 113 Md€, soit environ 3,3 % du PIB ; 1,3 % des associations (plus de 500 000 € de budget) réalisent 71 % du budget ; bénévolat de l’ordre de 1,4 million d’ETP. Enquête par questionnaire (7 421 réponses exploitables) avec un biais possible de surestimation des associations culturelles, sportives et de loisirs. Les chiffres d’emploi ne sont pas homogènes dans le dossier (1,7 à 1,85 million) : toujours citer l’indicateur exact.',
+      'Barea J., Monzón J. L. (CIRIEC), Manual for drawing up the satellite accounts of companies in the social economy: co-operatives and mutual societies, Liège, 2006, pour la Commission européenne. Constat de départ : le SCN 1993 et le SEC 95 n’isolent pas l’économie sociale, dispersée dans les secteurs institutionnels ; le compte satellite est un tableau évolutif qui rassemble les données d’un champ avec plus de détail que le cadre central. Le manuel couvre coopératives et mutuelles ; les associations et fondations relèvent du Handbook on Non-profit Institutions des Nations unies (2003). Ordres de grandeur UE-25, 2005 : plus de 230 000 coopératives, 5,5 millions d’emplois directs. Pertinence : un compte satellite ESS français (action de la stratégie nationale 2026) suppose un registre statistique des entreprises du champ et des comptes d’entreprises, ce que FLORES seul ne fournit pas.',
+      'Nyssens M., Defourny J., « The EMES Approach of Social Enterprise in a Comparative Perspective », EMES Working Papers n° 12/03, 2012 : référence de l’approche européenne de l’entreprise sociale, qui la situe par rapport au marché, à la société civile et aux politiques publiques. Les critères détaillés n’ont pas été relus ici : ne pas les citer sans consulter le texte intégral.',
+      'Décomposition structurelle-résiduelle (shift-share) : Dunn E. S., Papers of the Regional Science Association, 6(1), 1960, pp. 97-112 ; Esteban-Marquillas J. M., Regional and Urban Economics, 2(3), 1972, pp. 249-255 ; Loveridge S., Selting A., « A Review and Comparison of Shift-Share Identities », International Regional Science Review, 21(1), 1998, pp. 37-58 ; Artige L., Neuss L., « A New Shift-Share Method », Growth and Change, 45(4), 2014, pp. 667-683. La méthode sépare l’effet de structure sectorielle de l’effet compétitif, mais sa lecture est discutée (manque de fondement théorique, ambiguïté de la séparation) : présenter le résultat comme une description, pas comme une explication causale.',
+      'Ces références nourrissent le raisonnement de l’Expert ; il ne les cite que si on les lui demande ou si un chiffre l’exige. Dans ce cas : auteurs, année et source ; dire le champ et l’année des données (par exemple 2017 pour le paysage associatif) ; ne pas mélanger avec FLORES ou Urssaf sans le signaler ; signaler un biais d’enquête connu ; préférer la source primaire au résumé de presse.',
+      'Revues et sources savantes de référence à interroger avant d’affirmer : RECMA (Revue internationale de l’économie sociale), Annals of Public and Cooperative Economics (CIRIEC), Voluntas, Nonprofit and Voluntary Sector Quarterly, Growth and Change, International Regional Science Review, publications Insee (Insee Références, Insee Première, documents de travail), DARES, DREES, Cour des comptes, France Stratégie, Avise, Observatoire national de l’ESS.',
+    ],
+  },
+  informatique_securite: {
+    titre: 'Informatique, sécurité et accessibilité de l’outil',
+    regles: [
+      'Accès : connexion Microsoft 365 obligatoire ; deux profils (expert, consultation) déterminés par les droits SharePoint ; aucun accès anonyme sauf option explicite.',
+      'Données : l’outil lit les fichiers de l’observatoire depuis SharePoint et les traite dans le navigateur ; ne pas saisir de données personnelles. La liste des entreprises dérive de Sirene : respecter les règles de non-diffusion.',
+      'Accessibilité : viser le RGAA / WCAG 2.2 AA (contrastes, navigation clavier, description des graphiques, tableaux alternatifs, impression) ; une déclaration d’accessibilité reste à rédiger.',
+      'Qualité : tests de non-régression avant chaque mise en ligne (panorama, Explorer, note de conjoncture, absence de débordement mobile, contrôle d’accessibilité automatique) ; l’outil est un fichier unique : versionner chaque livraison.',
+    ],
+  },
+};
+IA_TOOLS.push({ name: 'base_expertise', description: 'Base d’expertise de l’observatoire (statistiques de l’emploi, méthodes d’analyse économique, qualité des données, droit et champ de l’ESS, politiques publiques, plaidoyer, communication, Mayotte, informatique et sécurité). À consulter avant d’interpréter un écart, comparer deux sources, citer une politique publique, rédiger un argumentaire ou répondre sur Mayotte. Inclut les références académiques lues (paysage associatif, comptes satellites, EMES, shift-share). Les éléments datés doivent être revérifiés par recherche web avant d’être cités.',
+  schema: { type: 'object', properties: { domaine: { type: 'string', enum: [...Object.keys(SAVOIR), 'tous'] } } },
+  run: (a) => { const k = a && a.domaine && a.domaine !== 'tous' ? [a.domaine] : Object.keys(SAVOIR); return JSON.stringify(Object.fromEntries(k.map((x) => [x, SAVOIR[x]])), null, 1); } });
+Object.assign(window.ESS, { SAVOIR });
+
+/* ===== Référentiel sectoriel commun (nomenclatures FLORES 2021 & 2022, par niveau géographique et par famille) ===== */
+const SECT = [
+  // [clé, libellé canonique, regex sur libellé normalisé, regroupement, niveau fin ?]
+  ['sante_social', 'Action sociale et santé humaine', /action sociale et sante humaine|qb \+ qa/, 'social'],
+  ['culture_sport', 'Arts, spectacles, sport et loisirs', /arts, spectacles \+ sport|arts.*sport et loisirs/, 'culture'],
+  ['agri_ind', 'Agriculture, industrie et construction', /agriculture, industrie, construction|az\+be\+fz/, 'prod'],
+  ['agri', 'Agriculture, sylviculture et pêche', /agricult/, 'prod'],
+  ['ind_alim', 'Industries alimentaires', /industries alimentaires/, 'prod'],
+  ['ind_aut', 'Autres industries et construction', /autres industries|\(be sauf ca\)/, 'prod'],
+  ['ind', 'Industrie et construction', /industrie|construction|\bbe\+fz/, 'prod'],
+  ['social', 'Action sociale', /action sociale|accueil d.(adultes|enfants)|88\b.*sans hebergement/, 'social'],
+  ['aad', 'Aide à domicile', /aide a domicile/, 'social', 1],
+  ['ajen', 'Accueil de jeunes enfants', /accueil de jeunes enfants/, 'social', 1],
+  ['atrav', 'Aide par le travail', /aide par le travail/, 'social', 1],
+  ['hms', 'Hébergement médico-social et social', /hebergement medico-social/, 'social', 1],
+  ['sante', 'Santé humaine', /sante humaine|activites pour la sante|\(qa\)/, 'sante'],
+  ['soutien', 'Soutien aux entreprises', /soutien aux entreprises|activites specialisees|services administratifs|\(mn\)/, 'eco'],
+  ['ens', 'Enseignement', /enseignement|formation d.adulte/, 'edu'],
+  ['commerce', 'Commerce', /commerce/, 'prod'],
+  ['hebresto', 'Hébergement et restauration', /hebergement et restauration|hebergement, et restauration|restauration/, 'vac'],
+  ['fin', 'Activités financières et d’assurance', /financ|assurance/, 'fin'],
+  ['info', 'Information et communication', /information et communication|\(jz\)/, 'eco'],
+  ['arts', 'Arts et spectacles', /arts, spectacles|arts du spectacle|spectacle/, 'culture'],
+  ['sport', 'Sport et loisirs', /sport et loisirs|^sport|^loisirs|sportives|recreatives/, 'sport'],
+  ['nonclasse', 'Non classés (94.99Z)', /non.classe|94\.99/, 'autre'],
+  ['divers', 'Services divers (reste de la NAF)', /services divers|activites diverses|autres secteurs d.activite|reste de la naf/, 'autre'],
+];
+const secNorm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim();
+/** Sécurité : les libellés « Ensemble / Total tous secteurs » ne sont pas des secteurs. */
+function secCanon(label) {
+  const n = secNorm(label); if (!n || /^ensemble$|tous secteurs|ts secteurs/.test(n)) return null;
+  // ordre : les cas composites et fins passent avant les grands secteurs
+  for (const s of SECT) if (s[2].test(n)) return { k: s[0], lab: s[1], grp: s[3], fin: !!s[4] };
+  return null;
+}
+const secCanonLab = (label) => { const c = secCanon(label); return c ? c.lab : null; };
+/** Équivalence de secteur entre deux nomenclatures (millésimes ou typologies) : sert UNIQUEMENT à appliquer un filtre ; les libellés Insee ne sont jamais modifiés. */
+const _secSets = new Map();
+/** Ensemble des secteurs d'un tableau (ou du tableau de base) pour une période donnée. */
+function secSet(tab, per) { const rows = tab ? tab.rows : state.rows; const key = (tab ? tab.name : 'base') + '|' + rows.length + '|' + (per || ''); let s = _secSets.get(key); if (!s) { s = new Set(); for (const r of rows) if (!per || !r.t || r.t === per) s.add(r.secteur); _secSets.set(key, s); } return s; }
+function secEquiv(label, set) {
+  if (set.has(label)) return label; const k = secCanon(label); if (!k) return null;
+  for (const x of set) { const c = secCanon(x); if (c && c.k === k.k) return x; } return null;
+}
+/** Secteurs proposés au filtre : ceux des tableaux de la période (et du niveau) choisis, libellés Insee d'origine, un seul libellé par secteur équivalent. */
+function secOptions(t, geoLevel) {
+  const cnt = new Map(); const add = (rows) => { for (const r of rows) { if (!r.secteur || r.secteur === 'Ensemble' || r.secteur === 'Non renseigné') continue; if (t && r.t && r.t !== t) continue; if (geoLevel && geoLevel !== 'zone' && !r[geoLevel]) continue; cnt.set(r.secteur, (cnt.get(r.secteur) || 0) + 1); } };
+  add(state.rows); for (const tb of state.tables) add(tb.rows);
+  const byKey = new Map(); for (const [lab, n] of cnt) { const c = secCanon(lab); const key = c ? c.k : lab; const cur = byKey.get(key); if (!cur || n > cur.n) byKey.set(key, { lab, n }); }
+  return [...byKey.values()].map((x) => x.lab).sort((a, b) => a.localeCompare(b, 'fr'));
+}
+/** Détail sectoriel publié par l'Insee, lu dans les fichiers de commande chargés (feuilles « Typo… »). */
+function secDetailCommande() {
+  const out = []; for (const [y, c] of Object.entries(state.commandes || {})) for (const [n, v] of Object.entries(c.typos || {})) {
+    const princ = v.filter((x) => x.principal && !/^ts secteurs|tous secteurs|confondus/i.test(refNorm(x.lib)));
+    const fins = {}; for (const x of v) if (!x.principal && x.parent) (fins[x.parent] ||= []).push(x.lib);
+    out.push({ millesime: y, typologie: n.replace(/_/g, ' '), nb_postes: v.length, secteurs_principaux: princ.length, secteurs_avec_detail: Object.fromEntries(Object.entries(fins).map(([k, l]) => [k, l.length + ' sous-postes'])) });
+  } return out;
+}
+const secPresents = () => [...new Set(state.rows.map((r) => r.secteur).filter((x) => x && x !== 'Ensemble' && x !== 'Non renseigné'))].sort((a, b) => a.localeCompare(b, 'fr'));
+Object.assign(window.ESS, { SECT, secCanon, secEquiv, secOptions, secDetailCommande, secPresents });
+IA_TOOLS.push({ name: 'referentiel_secteurs', description: 'Secteurs d’activité réellement présents dans les données (libellés Insee d’origine) et détail sectoriel publié par l’Insee selon le niveau géographique et la famille, lu dans les fichiers de commande chargés. À consulter avant de promettre un détail fin pour une étude ciblée.',
+  schema: { type: 'object', properties: {} },
+  run: () => JSON.stringify({ secteurs_presents_dans_les_donnees: secPresents(), typologies_des_commandes: secDetailCommande(), usage_dans_les_publications: 'CRESS et ESS France : une douzaine de grands secteurs Insee triés par effectif décroissant (action sociale, enseignement, activités financières et d’assurance, santé humaine, soutien aux entreprises, sports et loisirs, arts et spectacles, commerce, industrie et construction, hébergement et restauration, agriculture, services divers, non-classés 94.99Z), avec le poids de l’ESS dans l’emploi du secteur ; l’action sociale est détaillée en 5 postes (hébergement médico-social, aide à domicile, aide par le travail, accueil de jeunes enfants, autres). ESS France et la CRESS AURA complètent par une lecture thématique (22 chapitres : publics vulnérables, bien vieillir, petite enfance, handicap, accès aux soins, protection, finance, soutien aux entreprises, alimentation, culture, sport, éducation…).', regle: 'Plus le territoire est petit, plus la typologie Insee est grossière (secret statistique) : se référer aux typologies de la commande.' }, null, 1) });
+
+// ----------------------------------------------------------------------
+// Sirene en deux temps, depuis l'API publique « Recherche d'entreprises » (données Sirene ; sans clé ; 7 requêtes/s/IP ; 25 résultats/page) :
+//   1. récupération de TOUS les établissements actifs et diffusibles des territoires choisis (base brute, reprise possible) ;
+//   2. extraction de l'ESS par le périmètre du référentiel (mêmes règles que python/sirene_ess.py), sans nouvel appel à l'API.
+// ----------------------------------------------------------------------
+const SIR_API = 'https://recherche-entreprises.api.gouv.fr/search';
+const SIR_TERR = { 971: 'Guadeloupe', 972: 'Martinique', 973: 'Guyane', 974: 'La Réunion', 976: 'Mayotte' };
+const SIR_TR = { NN: 'Non employeur', '00': '0 salarié', '01': '1 à 2', '02': '3 à 5', '03': '6 à 9', 11: '10 à 19', 12: '20 à 49', 21: '50 à 99', 22: '100 à 199', 31: '200 à 249', 32: '250 à 499', 41: '500 à 999', 42: '1 000 à 1 999', 51: '2 000 à 4 999', 52: '5 000 à 9 999', 53: '10 000 et plus' };
+const SIR_CAP = 9900; // la pagination de l'API est probablement plafonnée à 10 000 résultats : au-delà on découpe
+const SIR_SECTIONS = 'ABCDEFGHIJKLMNOPQRSTU'.split('');
+// Colonnes de la base brute (un établissement par ligne)
+const SIR_RAW = ['siret', 'siren', 'nom', 'sigle', 'enseigne', 'cj', 'ape', 'dep', 'code_commune', 'commune', 'code_postal', 'adresse', 'tranche', 'employeur', 'siege', 'date_creation', 'ess', 'epci', 'rna'];
+const SIR_COLS = ['siret', 'siren', 'nom', 'sigle', 'enseigne', 'famille', 'cj', 'cj_libelle', 'ape', 'secteur', 'territoire', 'code_commune', 'commune', 'code_postal', 'adresse', 'tranche_eff', 'employeur', 'siege', 'date_creation', 'actif', 'epci', 'rna'];
+let SIR_STOP = false; let SIR_LAST = 0; let SIR_BASE = {}; // SIR_BASE[dep] = { lignes, faits, produit_le, incomplets }
+
+const sirWait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function sirGet(params, tries = 5) {
+  const u = SIR_API + '?' + new URLSearchParams(params).toString();
+  for (let k = 0; k < tries; k++) {
+    if (SIR_STOP) throw new Error('arrêt demandé');
+    const dt = Date.now() - SIR_LAST; if (dt < 170) await sirWait(170 - dt); SIR_LAST = Date.now(); // ≈ 6 requêtes/s, sous la limite de 7
+    let r; try { r = await fetch(u, { headers: { Accept: 'application/json' } }); } catch (e) { if (k === tries - 1) throw new Error('API injoignable (réseau ou blocage du navigateur) : ' + e.message); await sirWait(1000 * (k + 1)); continue; }
+    if (r.status === 429) { await sirWait((+r.headers.get('Retry-After') || 2) * 1000 + 300); continue; }
+    if (r.status >= 500) { await sirWait(1500 * (k + 1)); continue; }
+    if (!r.ok) { const e = new Error('API : HTTP ' + r.status); e.status = r.status; throw e; }
+    return r.json();
+  }
+  throw new Error('API : trop de tentatives');
+}
+// Parcourt toutes les pages d'une requête. Si le volume dépasse le plafond : découpe par section d'activité, puis signale ce qui reste incomplet.
+async function sirCollect(base, onPage, st) {
+  const first = await sirGet({ ...base, page: 1, per_page: 25 }); st.requetes++;
+  const total = first.total_results || 0;
+  if (total > SIR_CAP && !base.section_activite_principale) { for (const s of SIR_SECTIONS) await sirCollect({ ...base, section_activite_principale: s }, onPage, st); return; }
+  if (total > SIR_CAP) st.incomplets.push(`${base.code_commune || ''} section ${base.section_activite_principale} : ${total} résultats`);
+  onPage(first);
+  const pages = Math.min(first.total_pages || 1, Math.ceil(SIR_CAP / 25));
+  for (let p = 2; p <= pages; p++) { onPage(await sirGet({ ...base, page: p, per_page: 25 })); st.requetes++; }
+}
+const sirApe = (a) => String(a || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+function sirBrut(res, dep, st) {
+  const out = []; const ms = res.matching_etablissements || []; if (ms.length >= 100) st.unites_100_etab++;
+  for (const m of ms) {
+    if (String(m.commune || '').slice(0, 3) !== dep) continue;
+    if (m.etat_administratif && m.etat_administratif !== 'A') continue;
+    if (m.statut_diffusion_etablissement && m.statut_diffusion_etablissement !== 'O') { st.non_diffusibles++; continue; }
+    const adr = String(m.adresse || '').replace(new RegExp('\\s*' + (m.code_postal || '') + '\\s+' + String(m.libelle_commune || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$'), '').trim();
+    out.push([m.siret, res.siren, res.nom_complet || res.nom_raison_sociale || '', res.sigle || '', (m.liste_enseignes && m.liste_enseignes[0]) || m.nom_commercial || '', String(res.nature_juridique || ''), sirApe(m.activite_principale), dep, m.commune, m.libelle_commune || '', m.code_postal || '', adr,
+      m.tranche_effectif_salarie || '', m.caractere_employeur || '', m.est_siege ? 1 : 0, m.date_creation || '', res.complements && res.complements.est_ess ? 1 : 0, m.epci || '', (res.complements && res.complements.identifiant_association) || '']);
+  }
+  return out;
+}
+
+// --- Étape 1 : toute la base d'un territoire, commune par commune, avec reprise ---
+async function sirTelecharger(dep, onMsg) {
+  SIR_STOP = false; const prev = SIR_BASE[dep] || (await cGet('SIRENE_' + dep)) || { lignes: [], faits: [], incomplets: [] };
+  const map = new Map(prev.lignes.map((r) => [r[0], r])); const faits = new Set(prev.faits); const st = { requetes: 0, non_diffusibles: 0, unites_100_etab: 0, incomplets: [...(prev.incomplets || [])] };
+  const communes = Array.from({ length: 40 }, (_, i) => dep + String(i + 1).padStart(2, '0'));
+  const enregistre = async (fini) => { SIR_BASE[dep] = { dep, lignes: [...map.values()], faits: [...faits], incomplets: st.incomplets, produit_le: fini ? new Date().toISOString() : (prev.produit_le || null), complet: fini && faits.size === communes.length }; await cPut('SIRENE_' + dep, SIR_BASE[dep]); };
+  try {
+    let n = 0;
+    for (const c of communes) {
+      n++; if (faits.has(c)) continue;
+      onMsg(`${SIR_TERR[dep]} · commune ${c} (${n}/${communes.length}) — ${fInt(map.size)} établissements`);
+      await sirCollect({ code_commune: c, etat_administratif: 'A', limite_matching_etablissements: 100 }, (page) => { for (const r of page.results || []) for (const row of sirBrut(r, dep, st)) map.set(row[0], row); }, st);
+      faits.add(c); if (n % 5 === 0) await enregistre(false);
+    }
+    await enregistre(true);
+  } catch (e) { await enregistre(false); throw e; }
+  return { n: map.size, st };
+}
+
+// --- Étape 2 : extraction de l'ESS depuis la base brute (aucun appel réseau) ---
+function sirExtraire() {
+  const P = REF.perimetres[S.perimetre] || REF.perimetres['2021']; const excl = P.ape_exclus.map((e) => e.toUpperCase());
+  const regles = REF.secteurs_naf.slice().sort((a, b) => b.prefixe.length - a.prefixe.length); const cacheSec = new Map();
+  const secteur = (ape) => { if (!cacheSec.has(ape)) { const r = regles.find((x) => ape.startsWith(x.prefixe)); cacheSec.set(ape, r ? r.secteur : 'Non renseigné'); } return cacheSec.get(ape); };
+  const pub = new RegExp('^[' + REF.public_cj_prefixe + ']'); const st = { base: 0, hors_perimetre: 0, exclus_ape: 0 }; const lignes = []; const parTerr = {};
+  for (const dep of Object.keys(SIR_BASE)) for (const r of SIR_BASE[dep].lignes) {
+    st.base++; const [siret, siren, nom, sigle, ens, cj, ape, d, cc, com, cp, adr, tr, emp, sg, dc, ess, epci, rna] = r; parTerr[d] = parTerr[d] || { tout: 0, ess: 0 }; parTerr[d].tout++;
+    let fam = P.cj[cj] || null;
+    if (!fam && ess && !pub.test(cj) && S.inclureSC === '1') fam = FAM_SC;
+    const aj = (REF.ajouts_siren || {})[siren]; if (aj) fam = aj; if ((REF.retraits_siren || {})[siren]) fam = null;
+    if (!fam) { st.hors_perimetre++; continue; }
+    if (excl.some((e) => ape.startsWith(e))) { st.exclus_ape++; continue; }
+    parTerr[d].ess++;
+    lignes.push([siret, siren, nom, sigle, ens, fam, cj, REF.libelles_cj[cj] || '', ape, secteur(ape), SIR_TERR[d], cc, com, cp, adr, tr ? SIR_TR[tr] || 'Non renseigné' : 'Non renseigné', emp === 'O' ? 'Oui' : emp === 'N' ? 'Non' : '', sg ? 'Oui' : 'Non', dc, 'Actif', epci, rna || '']);
+  }
+  lignes.sort((a, b) => String(a[10]).localeCompare(b[10]) || String(a[2]).localeCompare(b[2], 'fr'));
+  const dates = Object.values(SIR_BASE).map((b) => b.produit_le).filter(Boolean).sort();
+  return { version: 2, produit_le: dates.length ? new Date(dates[0]).toLocaleDateString('fr-FR') : new Date().toLocaleDateString('fr-FR'), source: 'Insee, base Sirene, via l’API Recherche d’entreprises (data.gouv.fr)',
+    perimetre: P.libelle + (S.inclureSC === '1' ? ' + sociétés commerciales de l’ESS' : ''),
+    avertissement: 'Établissements actifs et diffusibles. Le périmètre est statistique : une présence dans la liste ne vaut pas agrément ni qualité ESS au sens juridique.',
+    stats: { ...st, etablissements_ess: lignes.length, entreprises_ess: new Set(lignes.map((r) => r[1])).size, par_territoire: parTerr }, colonnes: SIR_COLS, lignes };
+}
+
+function sirResume() {
+  const el = $('sirBase'); if (!el) return; const ks = Object.keys(SIR_BASE).filter((k) => SIR_BASE[k].lignes.length);
+  if (!ks.length) { el.innerHTML = '<span class="muted">Aucune base Sirene en mémoire sur cet ordinateur.</span>'; $('sirExtr').disabled = true; return; }
+  el.innerHTML = '<div class="tw"><table class="t"><thead><tr><th>Territoire</th><th>Établissements</th><th>Structures (SIREN)</th><th>Dont ESS déclarées Sirene</th><th>État</th></tr></thead><tbody>' + ks.map((k) => { const b = SIR_BASE[k]; const l = b.lignes;
+    return `<tr><td>${SIR_TERR[k]}</td><td>${fInt(l.length)}</td><td>${fInt(new Set(l.map((r) => r[1])).size)}</td><td>${fInt(l.filter((r) => r[16]).length)}</td><td>${b.complet ? 'complète · ' + new Date(b.produit_le).toLocaleDateString('fr-FR') : 'partielle (' + b.faits.length + '/40 codes)'}${b.incomplets.length ? ` · ${b.incomplets.length} découpage(s) incomplet(s)` : ''}</td></tr>`; }).join('') + '</tbody></table></div>';
+  $('sirExtr').disabled = false;
+}
+async function sirLancer() {
+  const zones = [...document.querySelectorAll('.sirZ:checked')].map((c) => c.value); const msg = $('sirMsg');
+  if (!zones.length) { msg.innerHTML = '<span class="badge warn">Choisissez au moins un territoire.</span>'; return; }
+  $('sirGo').disabled = true; $('sirStop').classList.remove('hide'); const t0 = Date.now();
+  try {
+    for (const dep of zones) { const r = await sirTelecharger(dep, (t) => { msg.innerHTML = `<span class="muted">${esc(t)} · ${Math.round((Date.now() - t0) / 1000)} s</span>`; }); msg.innerHTML = `<span class="badge ok">${SIR_TERR[dep]} : ${fInt(r.n)} établissements (${r.st.requetes} requêtes)</span>`; sirResume(); }
+    msg.innerHTML += ' <span class="badge ok">Base à jour. Lancez l’extraction de l’ESS.</span>';
+  } catch (e) { msg.innerHTML = `<div class="msg warn">${esc(e.message)}${/injoignable/.test(e.message) ? ' — si le blocage vient du navigateur (CORS) ou du réseau, utilisez le script <code>python/sirene_ess.py</code>.' : /arrêt/.test(e.message) ? ' — la progression est conservée : relancez pour reprendre.' : ''}</div>`; }
+  finally { $('sirGo').disabled = false; $('sirStop').classList.add('hide'); sirResume(); }
+}
+function sirExtraireUI() {
+  try { const o = sirExtraire(); anLoadObj(o); cPut('ANNUAIRE', o); const pt = o.stats.par_territoire;
+    $('sirMsg').innerHTML = `<span class="badge ok">${fInt(o.lignes.length)} établissements ESS · ${fInt(o.stats.entreprises_ess)} structures, sur ${fInt(o.stats.base)} établissements de la base</span> <span class="muted">${Object.keys(pt).map((d) => `${SIR_TERR[d]} : ${(100 * pt[d].ess / Math.max(1, pt[d].tout)).toFixed(1).replace('.', ',')} % des établissements`).join(' · ')}</span>`; $('sirPub').classList.remove('hide');
+  } catch (e) { err(e); }
+}
+async function sirPublish() {
+  try { const j = 'window.ESS_ENTREPRISES=' + JSON.stringify(AN).replace(/<\//g, '<\\/') + ';\n'; const where = await syncWrite([[new Blob([j], { type: 'text/javascript' }), 'entreprises.js']]); $('sirMsg').insertAdjacentHTML('beforeend', ` <span class="badge ok">entreprises.js publié : ${esc(String(where))}</span>`); } catch (e) { err(e); }
+}
+function sirExportBase() {
+  const ks = Object.keys(SIR_BASE).filter((k) => SIR_BASE[k].lignes.length); if (!ks.length) return; const wb = XLSX.utils.book_new();
+  for (const k of ks) XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([SIR_RAW, ...SIR_BASE[k].lignes]), SIR_TERR[k]);
+  saveWb(wb, 'Sirene_base_brute.xlsx');
+}
+(function initSirApi() {
+  const b = $('sirGo'); if (!b) return;
+  b.onclick = sirLancer; $('sirStop').onclick = () => { SIR_STOP = true; }; $('sirExtr').onclick = sirExtraireUI; $('sirPub').onclick = sirPublish; $('sirXl').onclick = sirExportBase;
+  (async () => { for (const d of Object.keys(SIR_TERR)) { const o = await cGet('SIRENE_' + d); if (o && o.lignes) SIR_BASE[d] = o; } sirResume();
+    const a = await cGet('ANNUAIRE'); if (a && a.lignes && !AN) { try { anLoadObj(a); $('sirPub').classList.remove('hide'); } catch { /* ignoré */ } } })().catch(() => {});
+})();
+Object.assign(window.ESS, { sirBrut, sirTelecharger, sirExtraire, SIR_COLS, SIR_RAW });
+
+/* ===== Explorer : nouveaux indicateurs dérivés + croisement à deux dimensions ===== */
+const INDICS_PLUS = [
+  ['taillemoy', 'Taille moyenne des établissements (salariés par établissement)'],
+  ['ecart', 'Écart du poids de l’ESS à sa moyenne (points)'],
+  ['spec', 'Indice de spécificité (100 = poids moyen de l’ESS)'],
+  ['remEcart', 'Écart de rémunération ESS / privé hors ESS (%)'],
+  ['femSexe', 'Part des femmes (%), d’après les tableaux par sexe'],
+];
+for (const x of INDICS_PLUS) if (!INDICS.some((i) => i[0] === x[0])) INDICS.push(x);
+const exPlusOk = (k) => (k === 'femSexe' ? dimsAvailable().includes('sexe') : k === 'remEcart' ? state.tables.some((t) => t.nonESS && t.rows.some((r) => r.ms > 0)) || (state.map.ms && state.rows.some((r) => r.statut !== 'ESS')) : k === 'taillemoy' ? true : true);
+/** Valeur d'un indicateur sur une case (agrégat a) ; base = agrégat de référence (emploi total ou privé) ; ref = poids moyen de l'ESS. */
+function crossValue(ind, a, ctx) {
+  switch (ind) {
+    case 'eff': return a.eff; case 'etab': return a.etab; case 'etp': return a.etp; case 'ms': return a.ms;
+    case 'rem': return remMoy(a); case 'taillemoy': return a.etab > 0 ? a.eff / a.etab : null;
+    case 'part': return ctx.rowTot ? pct(a.eff, ctx.rowTot) : null;
+    case 'poids': return pct(a.eff, ctx.base?.eff); case 'poidsPriv': return pct(a.eff, ctx.basePriv?.eff);
+    case 'ecart': { const p = pct(a.eff, ctx.basePriv?.eff); return p == null || ctx.refPoids == null ? null : p - ctx.refPoids; }
+    case 'spec': { const p = pct(a.eff, ctx.basePriv?.eff); return p == null || !ctx.refPoids ? null : (p / ctx.refPoids) * 100; }
+    case 'fem': return pct(a.fem, a.eff); case 'cdi': return pct(a.cdi, a.eff);
+  }
+  return null;
+}
+const CROSS_FMT = { eff: fInt, etab: fInt, etp: fInt, ms: fEur, rem: fEur, taillemoy: (x) => (x == null ? '—' : fNum1(x)), part: fPct, poids: fPct, poidsPriv: fPct, ecart: (x) => (x == null ? '—' : fSgn(x) + NB + 'pt'), spec: (x) => (x == null ? '—' : String(Math.round(x))), fem: fPct, cdi: fPct };
+const fNum1 = (x) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(x);
+/** Croisement de deux dimensions (tableau à double entrée). Retourne true si pris en charge. */
+function runCross(ind, d1, d2, champ, f) {
+  const out = $('exSentence'); const tab = srcFor([d1, d2, f.geoLevel], { needAll: champ !== 'ESS' || ['poids', 'poidsPriv', 'ecart', 'spec'].includes(ind), t: f.t });
+  if (!tab && [d1, d2, f.geoLevel].some((d) => d && !baseHas(d))) { out.textContent = 'Aucun tableau chargé ne contient ces deux ventilations ensemble : essayez une autre combinaison (le tableau de la page Données indique les croisements disponibles).'; $('exTable').innerHTML = ''; return true; }
+  if (['fem', 'cdi', 'femSexe', 'remEcart'].includes(ind)) { out.textContent = 'Cet indicateur ne se croise pas avec une deuxième dimension : choisissez un effectif, un nombre d’établissements ou un poids.'; $('exTable').innerHTML = ''; return true; }
+  const all = filt(f, tab); const sel = champ ? all.filter((r) => r.statut === champ) : all;
+  if (!sel.length) { out.textContent = `Aucune donnée pour ce croisement en ${f.t}.`; $('exTable').innerHTML = ''; return true; }
+  const k1 = (r) => dimVal(r, d1); const k2 = (r) => dimVal(r, d2);
+  const rowsK = [...new Set(sel.map(k1))]; const colsK = [...new Set(sel.map(k2))];
+  const cell = (r1, c1) => agg(sel.filter((r) => k1(r) === r1 && k2(r) === c1));
+  const rowAgg = (r1) => agg(sel.filter((r) => k1(r) === r1)); const colAgg = (c1) => agg(sel.filter((r) => k2(r) === c1));
+  const refAll = agg(all); const refPrivAll = agg(all.filter((r) => r.statut !== 'Public'));
+  const refPoids = pct(agg(all.filter((r) => r.statut === 'ESS')).eff, refPrivAll.eff);
+  const ctxFor = (r1, c1) => { const rr = (r) => (r1 == null || k1(r) === r1) && (c1 == null || k2(r) === c1); return { base: agg(all.filter(rr)), basePriv: agg(all.filter((r) => rr(r) && r.statut !== 'Public')), rowTot: r1 != null ? rowAgg(r1).eff : null, refPoids }; };
+  const fmt = CROSS_FMT[ind] || fInt; const sorted1 = d1 === 'temps' ? orderKeys(d1, rowsK) : rowsK.sort((a, b) => rowAgg(b).eff - rowAgg(a).eff);
+  const cols = orderKeys(d2, colsK.slice());
+  const head = [DIM_LABELS()[d1] + ' \\ ' + DIM_LABELS()[d2], ...cols, 'Ensemble'];
+  const data = sorted1.map((r1) => { const cells = cols.map((c1) => { const a = cell(r1, c1); if (!a.n) return { t: '—' }; if (isSecret(a)) return { t: 's' }; const v = crossValue(ind, a, { ...ctxFor(r1, c1), rowTot: rowAgg(r1).eff }); return { t: v == null ? '—' : fmt(v), v }; }); const ra = rowAgg(r1); const tv = crossValue(ind, ra, { ...ctxFor(r1, null), rowTot: ra.eff }); return { r1, cells, tot: isSecret(ra) ? 's' : tv == null ? '—' : fmt(tv), ra }; });
+  const body = data.map((d) => [d.r1, ...d.cells.map((c) => c.t), d.tot]);
+  const ta = agg(sel); const totRow = ['Ensemble', ...cols.map((c1) => { const a = colAgg(c1); const v = isSecret(a) ? 's' : crossValue(ind, a, { ...ctxFor(null, c1), rowTot: ta.eff }); return v === 's' ? 's' : v == null ? '—' : fmt(v); }), (() => { const v = crossValue(ind, ta, { ...ctxFor(null, null), rowTot: ta.eff }); return v == null ? '—' : fmt(v); })()];
+  $('exTable').innerHTML = htmlTable(head, body, totRow);
+  // phrase de lecture : la plus grosse case + lecture en pourcentage de ligne
+  const flat = []; for (const d of data) cols.forEach((c1, i) => { const c = d.cells[i]; if (c.v != null && isFinite(c.v)) flat.push({ r1: d.r1, c1, v: c.v, t: c.t }); });
+  flat.sort((a, b) => b.v - a.v); const lab1 = DIM_LABELS()[d1].toLowerCase(), lab2 = DIM_LABELS()[d2].toLowerCase(); const indLbl = INDICS.find((i) => i[0] === ind)[1];
+  let s = `Croisement ${lab1} × ${lab2} en ${f.t} (${terrName(f)}), ${(champ === 'ESS' ? 'ESS' : champ || 'tous employeurs').toLowerCase().replace('ess', 'ESS')} : ${indLbl.replace(/ \(.*\)$/, '').toLowerCase()}.`;
+  if (flat[0]) s += ` La valeur la plus élevée concerne « ${flat[0].r1} » × « ${flat[0].c1} » (${flat[0].t})` + (flat[1] ? `, devant « ${flat[1].r1} » × « ${flat[1].c1} » (${flat[1].t}).` : '.');
+  const nS = data.reduce((n, d) => n + d.cells.filter((c) => c.t === 's').length, 0); if (nS) s += ` ${nS} case(s) masquée(s) par le secret statistique.`;
+  if (tab) s += ` Source : tableau « ${tab.name.split('/').pop()} ».`;
+  out.textContent = s; $('exSrc').textContent = sourceLine(f.t) + ' Les totaux ne sont pas toujours la somme des cases (secret statistique).';
+  if ($('exChart')) { try { if (charts.exChart) { charts.exChart.destroy(); delete charts.exChart; } } catch (e) { /* ignore */ } }
+  exLast = { s, head, body, totRow, f, scope: terrName(f), indLbl, dim: d1, ind, chart: null, chartable: [], fmt };
+  return true;
+}
+
 /* ===== Référentiel des productions de référence (ESS France, CRESS IDF, CRESS Occitanie, diagnostic territorial de Royan) =====
    Donne à l'assistant la grammaire de ces livrables (structure, ordre, éléments obligatoires, règles d'écriture) et produit le panorama thématique
    « ce que l'ESS apporte à la société » à partir des tableaux FLORES chargés. Données annuelles : aucune évolution calculée ici. */
@@ -25893,6 +26484,7 @@ const REF_PROD = {
     modeles: 'Note de conjoncture ESS France T4 2025 (Acoss-Urssaf) ; note de conjoncture CRESS Île-de-France 2023.',
     source: 'Acoss-Urssaf (séries trimestrielles brutes), jamais FLORES. Outil : generer_publication type « conjoncture » ou conjoncture_urssaf.',
     structure: ['Titre-message + chapeau chiffré (emplois, glissement annuel, solde net, ESS vs privé hors ESS)', 'Chiffres clés : effectifs, nombre d’établissements, salaire moyen par tête (SMPT)', 'Évolution trimestrielle de l’emploi (courbe ESS / privé hors ESS) avec lecture de la tendance et des phases', 'Détail par famille (associations, coopératives, mutuelles, fondations) et par secteur', 'Détail par territoire (régions, départements) ; pour l’Outre-mer : chaque DROM et l’agrégat', 'Salaire moyen par tête comparé à l’inflation (évolution réelle)', 'Éléments de contexte sourcés, seulement si demandés', 'Méthode, champ (régime général hors MSA), limites, sources'],
+    lecture_experte: ['Titres-messages (« L’ESS perd des emplois », « Contraction du nombre d’établissements malgré l’essor des fondations »), jamais de simples libellés', 'Taux en glissement annuel à deux décimales (−0,46 %), solde net en postes', 'Situer le trimestre dans la tendance : nombre de trimestres consécutifs de baisse, dernier recul annuel, rythme T−1 puis T (la baisse s’accentue / ralentit)', 'Dix grands secteurs NAF : santé, hébergement social et médico-social, aide à domicile, action sociale sans hébergement hors aide à domicile, enseignement, sports et loisirs, arts et spectacles, activités financières et d’assurance, hébergement et restauration, commerce ; chacun avec solde, taux et postes moteurs', 'Comparer l’ESS au privé hors ESS ; écarter les variations hors norme (> 20 %) qui traduisent un changement de codification', 'Salaires : SMPT ESS comparé au privé hors ESS et à l’inflation ; régions les mieux et les moins bien rémunérées', 'Régions : métropole puis outre-mer ; dire que Mayotte n’est pas dans l’extraction', 'Rappeler que la part de l’ESS dans l’emploi privé (Urssaf, régime général hors MSA) diffère de celle de FLORES (tous régimes)'],
     regles: ['Glissement annuel = T / T−4 (séries brutes) ; ne jamais comparer deux trimestres consécutifs en brut', 'Taux d’accroissement = (final − initial) / initial ; solde net = final − initial ; TCAM = (final / initial)^(1/n) − 1', 'Ne jamais additionner des taux ; additionner les effectifs puis recalculer', 'Dire quelle série est utilisée (brut ou CVS) et quel fichier'],
   },
   panorama_flores: {
@@ -26198,7 +26790,9 @@ async function onBoot() {
       try { if (!okAdm) throw Object.assign(new Error('non administrateur'), { status: 403 }); await onChildren(ON.cfg.dossierBases); ON.expert = true; } catch (e) { if (e.status !== 403 && e.status !== 404) throw e; ON.expert = false; }
       if (ON.expert) await onStartExpert(); else await onStartConsult();
       gate.classList.add('hide');
-    } catch (e) { $('gateBtn').disabled = false; $('gateMsg').innerHTML = `<div class="msg warn">${esc(String(e.message || e).slice(0, 300))}</div>`; }
+    } catch (e) { $('gateBtn').disabled = false; const who = ON.acct ? ` (compte : ${esc(ON.acct.username)})` : '';
+      const aide = e.status === 404 || e.status === 403 ? `<strong>Connexion réussie, mais ce compte${who} n’a pas accès au dossier SharePoint de l’observatoire</strong> (ou le dossier « ${esc(ON.cfg.dossierConsultation)} » est introuvable). Demandez à l’administrateur de vous partager le dossier en lecture, puis reconnectez-vous.<br><span class="muted">Détail technique : ${esc(String(e.message || e).slice(0, 160))}</span>` : esc(String(e.message || e).slice(0, 300));
+      $('gateMsg').innerHTML = `<div class="msg warn">${aide}</div>`; }
   };
   $('gateBtn').onclick = go;
   /* Accès public (sans connexion) : résultats agrégés publiés à côté de la page (public/resultats.js). L'accès administrateur passe par Entra (#admin ou session déjà ouverte). */
